@@ -198,6 +198,29 @@ yarn build
 - Обновляет интерфейс при изменении состояния приложения.
 - Обрабатывает пользовательские действия (например, добавление товаров в корзину, оформление заказа).
 
+**События, связанные с товарами:**
+- `ProductListLoaded` - обновляет модель Catalog и представление ProductView.
+- `ProductLoaded` - обновляет представление ProductDetailsView.
+- `ProductAdded` - обновляет модель Basket и представление BasketView.
+- `ProductUpdated` - обновляет модель Basket и представление BasketView.
+
+**События, связанные с корзиной:**
+- `BasketUpdated` - обновляет модель Basket и представление BasketView.
+- `BasketCleared` - обновляет модель Basket и представление BasketView.
+
+**События, связанные с заказом:**
+- `OrderCreated` - обновляет модель OrderProcessor и представление OrderSuccessView.
+- `OrderStatusChange`d - обновляет модель OrderProcessor и представление OrderView.
+- `OrderFormSubmitted` - обновляет модель OrderProcessor и представление OrderFormView.
+
+**События, связанные с ошибками:**
+- `ErrorOccurred` - обновляет представление OrderFormView или ProductView.
+
+**События, связанные с UI:**
+- `ModalClosed` - обновляет представление ProductDetailsView или OrderFormView.
+- `BasketOpened` - обновляет представление BasketView.
+- ``BasketClosed` - обновляет представление BasketView.
+
 ---
 
 ## Описание событий
