@@ -1,5 +1,5 @@
 import './scss/styles.scss';
-import { IProduct, IOrder, AppEvent } from './types/index';
+import { IProduct, IOrder, IOrderView, IOrderResponse, IProductView ,AppEvent } from './types/index';
 
 // EventEmitter для управления событиями
 class EventEmitter {
@@ -100,6 +100,117 @@ class OrderProcessor {
     return this.order;
   }
 }
+
+// Класс для отображения корзины (view)
+class BasketView {
+  private basketElement: HTMLElement;
+  private counterElement: HTMLElement;
+
+  constructor() {
+    this.basketElement = document.getElementById('basket')!;
+    this.counterElement = document.getElementById('basket-counter')!;
+  }
+
+  render(items: IProduct[]): void {
+    this.basketElement.innerHTML = items.map(item => `<div>${item.title}</div>`).join('');
+  }
+
+  updateCounter(count: number): void {
+    this.counterElement.textContent = count.toString();
+  }
+
+  show(): void {
+    this.basketElement.style.display = 'block';
+  }
+
+  hide(): void {
+    this.basketElement.style.display = 'none';
+  }
+}
+
+// Класс для отображения деталей товара (view)
+class ProductDetailsView implements IProductView {
+  private modalElement: HTMLElement;
+  private addToCartButton: HTMLElement;
+
+  constructor() {
+    this.modalElement = document.getElementById('product-modal')!;
+    this.addToCartButton = document.getElementById('add-to-cart-button')!;
+  }
+
+  renderProductDetails(product: IProduct): void {
+    this.modalElement.innerHTML = `
+      <h2>${product.title}</h2>
+      <p>${product.description}</p>
+      <p>Цена: ${product.price} руб.</p>
+    `;
+    this.modalElement.style.display = 'block';
+  }
+
+  updateAddToCartButton(isInCart: boolean): void {
+    this.addToCartButton.textContent = isInCart ? 'Убрать из корзины' : 'Добавить в корзину';
+  }
+
+  closeModal(): void {
+    this.modalElement.style.display = 'none';
+  }
+
+  renderProducts(products: IProduct[]): void {
+    console.log("Список товаров:", products);
+  }
+}
+
+// Класс для отображения формы заказа (view)
+class OrderFormView implements IOrderView {
+  private formElement: HTMLElement;
+  private errorElement: HTMLElement;
+
+  constructor() {
+    this.formElement = document.getElementById('order-form')!;
+    this.errorElement = document.getElementById('order-error')!;
+  }
+
+  render(): void {
+    this.formElement.style.display = 'block';
+  }
+
+  showError(message: string): void {
+    this.errorElement.textContent = message;
+  }
+
+  clearForm(): void {
+    this.formElement.style.display = 'none';
+    this.errorElement.textContent = '';
+  }
+
+  renderOrderSuccess(order: IOrderResponse): void {
+    alert(`Заказ успешно оформлен! ID заказа: ${order.id}, Сумма: ${order.total} руб.`);
+    this.clearForm();
+  }
+
+  renderOrderError(error: string): void {
+    this.showError(`Ошибка при оформлении заказа: ${error}`);
+  }
+}
+
+// Класс для отображения успешного заказа (view)
+class OrderSuccessView {
+  private successElement: HTMLElement;
+
+  constructor() {
+    this.successElement = document.getElementById('order-success')!;
+  }
+
+  render(order: IOrderResponse): void {
+    this.successElement.innerHTML = `
+      <h2>Заказ успешно оформлен!</h2>
+      <p>Номер заказа: ${order.id}</p>
+      <p>Итоговая сумма: ${order.total} руб.</p>
+    `;
+    this.successElement.style.display = 'block';
+  }
+}
+
 
 // Presenter
 class Presenter {

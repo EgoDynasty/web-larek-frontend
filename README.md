@@ -152,6 +152,7 @@ yarn build
 
 - `renderProducts(products: IProduct[]): void` – отрисовывает каталог товаров.
 - `renderProductDetails(product: IProduct): void` – отображает подробную информацию о товаре.
+- `updateProductList(products: IProduct[]): void` – обновляет список товаров в каталоге без полной перерисовки страницы.
 
 ### `BasketView`
 
@@ -182,6 +183,8 @@ yarn build
 
 - `renderOrderSuccess(order: IOrderResponse): void` – отображает сообщение об успешном заказе.
 - `renderOrderError(error: string): void` – показывает ошибки при оформлении заказа.
+- `validateOrderForm(): boolean` – проверяет корректность заполненных полей перед отправкой заказа.
+- `clearOrderForm(): void` – очищает форму после успешного заказа или сброса.
 
 ---
 
@@ -213,5 +216,3 @@ yarn build
 - `product_updated` – обновлен товар в каталоге.
 
 При каждом событии интерфейс обновляется, обеспечивая корректную работу приложения.
-
-
