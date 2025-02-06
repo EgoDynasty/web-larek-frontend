@@ -210,7 +210,7 @@ yarn build
 
 **События, связанные с заказом:**
 - `OrderCreated` - обновляет модель OrderProcessor и представление OrderSuccessView.
-- `OrderStatusChange`d - обновляет модель OrderProcessor и представление OrderView.
+- `OrderStatusChange` - обновляет модель OrderProcessor и представление OrderView.
 - `OrderFormSubmitted` - обновляет модель OrderProcessor и представление OrderFormView.
 
 **События, связанные с ошибками:**
@@ -219,7 +219,7 @@ yarn build
 **События, связанные с UI:**
 - `ModalClosed` - обновляет представление ProductDetailsView или OrderFormView.
 - `BasketOpened` - обновляет представление BasketView.
-- ``BasketClosed` - обновляет представление BasketView.
+- `BasketClosed` - обновляет представление BasketView.
 
 ---
 
