@@ -89,7 +89,7 @@ yarn build
 **Методы:**
 
 - `getAllProducts(): IProduct[]` – возвращает полный список товаров.
-- `addProduct(product: IProduct): void` – добавляет товар в каталог и генерирует событие о добавлении товара.
+- `setProducts(products: IProduct[]): void` – загружает список товаров в корзину, заменяя текущий массив товаров.
 - `updateProduct(productId: string, updatedProduct: IProduct): void` – обновляет товар в каталоге и генерирует событие об обновлении товара.
 
 ### `Basket`
@@ -132,59 +132,80 @@ yarn build
 
 **Методы:**
 
-- `createOrder(order: IOrder): void` – оформляет заказ и проверяет корректность данных.
+- `createOrder(order: IOrder): void` – проверяет корректность данных и формирует объект заказа.  
+  **Важно:** `OrderProcessor` не отправляет данные на сервер – этим занимается слой Presenter. Метод возвращает заказ для дальнейшей обработки.  
 - `getOrder(); IOrder | null` - возвращает текущий заказ, если он был оформлен
+- `validateOrder(order: IOrder): boolean` – проверяет корректность заполненных полей.
+Если данные невалидны, метод вызывает событие OrderValidationError с текстом ошибки.
 
 ---
 
 ## Слой представления (View)
 
-### `ProductView`
+### `ProductDetailsView`
 
-Отвечает за отображение каталога товаров.
+Отвечает за отображение деталей товара в модальном окне.
 
-**Основные элементы:**
-
-- Контейнер для списка товаров.
-- Карточки товаров.
+**DOM-элементы:**
+- `modalElement` — контейнер модального окна (`#product-modal`).
+- `addToCartButton` — кнопка "Добавить в корзину" (`#add-to-cart-button`).
 
 **Методы:**
+- `renderProductDetails(product: IProduct): void` — заполняет модальное окно данными о товаре.
+- `updateAddToCartButton(isInCart: boolean): void` — изменяет текст кнопки.
+- `closeModal(): void` — закрывает модальное окно.
 
-- `renderProducts(products: IProduct[]): void` – отрисовывает каталог товаров.
-- `renderProductDetails(product: IProduct): void` – отображает подробную информацию о товаре.
-- `updateProductList(products: IProduct[]): void` – обновляет список товаров в каталоге без полной перерисовки страницы.
+### `OrderFormView`
+
+Отвечает за отображение формы заказа и обработку ввода данных.
+
+**DOM-элементы:**
+- `formElement` — контейнер формы заказа (`#order-form`).
+- `errorElement` — элемент для отображения ошибок (`#order-error`).
+
+**Методы:**
+- `render(): void` — отображает форму заказа.
+- `showError(message: string): void` — отображает сообщение об ошибке.
+- `clearForm(): void` — очищает форму.
+- `renderOrderSuccess(order: IOrderResponse): void` — отображает успешный заказ.
+- `renderOrderError(error: string): void` — отображает ошибку.
+
+### `OrderSuccessView`
+
+Отвечает за отображение экрана успешного оформления заказа.
+
+**DOM-элементы:**
+- `successElement` — контейнер для сообщения об успешном заказе (`#order-success`).
+
+**Методы:**
+- `render(order: IOrderResponse): void` — отображает информацию о заказе.
+- `close(): void` — закрывает экран успешного заказа.
 
 ### `BasketView`
 
-Управляет визуальным отображением корзины.
+Отвечает за отображение корзины и управление её содержимым.
 
-**Основные элементы:**
-
-- Контейнер корзины.
-- Счетчик товаров и их стоимость.
-
-**Методы:**
-
-- `renderBasket(items: IProduct[]): void` – обновляет отображение корзины.
-- `renderTotalPrice(price: number): void` – отображает общую стоимость товаров в корзине.
-- `updateItemCount(count: number): void` – обновляет счетчик товаров в корзине.
-
-### `OrderView`
-
-Отвечает за оформление заказов.
-
-**Основные элементы:**
-
-- Форма заказа.
-- Поля для email, телефона и адреса.
-- Сообщение об успешной оплате или ошибке.
+**DOM-элементы:**
+- `basketElement` — контейнер корзины (`#basket`).
+- `counterElement` — элемент для отображения количества товаров (`#basket-counter`).
 
 **Методы:**
+- `render(items: IProduct[]): void` — отображает список товаров в корзине.
+- `updateCounter(count: number): void` — обновляет счетчик товаров.
+- `show(): void` — отображает корзину.
+- `hide(): void` — скрывает корзину.
 
-- `renderOrderSuccess(order: IOrderResponse): void` – отображает сообщение об успешном заказе.
-- `renderOrderError(error: string): void` – показывает ошибки при оформлении заказа.
-- `validateOrderForm(): boolean` – проверяет корректность заполненных полей перед отправкой заказа.
-- `clearOrderForm(): void` – очищает форму после успешного заказа или сброса.
+### Кнопка открытия корзины и счетчик товаров
+
+Кнопка открытия корзины и счетчик товаров находятся в шапке сайта (`header`). Они управляются классом `BasketView`.
+
+**DOM-элементы:**
+- Кнопка открытия корзины: `<button class="header__basket">`.
+- Счетчик товаров: `<span class="header__basket-counter">0</span>`.
+
+**Логика:**
+- При добавлении товара в корзину счетчик обновляется через метод `updateCounter`.
+- При нажатии на кнопку корзины вызывается метод `show`, который отображает корзину.
 
 ---
 

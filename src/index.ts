@@ -32,10 +32,11 @@ class Catalog {
     return this.products;
   }
 
-  addProduct(product: IProduct): void {
-    this.products.push(product);
-    this.events.emit(AppEvent.ProductAdded, product);
+  setProducts(products: IProduct[]): void {
+    this.products = products;
+    this.events.emit(AppEvent.BasketUpdated, this.products  );
   }
+  
 
   updateProduct(productId: string, updatedProduct: IProduct): void {
     const productIndex = this.products.findIndex(p => p.id === productId);
@@ -82,10 +83,22 @@ class Basket {
 // Класс заказа (Model)
 class OrderProcessor {
   private events: EventEmitter;
-  private order: IOrder | null = null;
+  private order: IOrder | null = null;  
 
   constructor(events: EventEmitter) {
     this.events = events;
+  }
+
+  validateOrder(order: IOrder): boolean {
+    if (!order.email.includes("@")) {
+      events.emit("OrderValidationError", "Некорректный email");
+      return false;
+    }
+    if (!order.phone.match(/^\d{10,15}$/)) {
+      events.emit("OrderValidationError", "Некорректн ый номер телефона");
+      return false;
+    }
+    return true;
   }
 
   createOrder(order: IOrder): void {
