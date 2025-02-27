@@ -87,9 +87,9 @@ yarn build
 - `constructor(products: IProduct[])` – получает массив товаров и сохраняет их.
 
 **Методы:**
-
+- `loadProducts(): Promise<void>` – загружает список товаров из API.
 - `getAllProducts(): IProduct[]` – возвращает полный список товаров.
-- `setProducts(products: IProduct[]): void` – загружает список товаров в корзину, заменяя текущий массив товаров.
+= `getProductById(id: string): IProduct | undefined` – возвращает товар по ID.
 - `updateProduct(productId: string, updatedProduct: IProduct): void` – обновляет товар в каталоге и генерирует событие об обновлении товара.
 
 ### `Basket`
@@ -108,19 +108,8 @@ yarn build
 - `getItems(): IProduct[]` – возвращает список товаров в корзине.
 - `clear(): void` – очищает корзину, удаляя все товары.
 - `getTotalPrice(): number` – рассчитывает и возвращает общую стоимость товаров в корзине.
-
-**Поля:**
-- `items: IProduct[]` – массив товаров, добавленных в корзину.
-
-**Конструктор:**
-
-- `constructor()` – создаёт пустую корзину.
-
-**Методы:**
-
-- `addItem(product: IProduct): void` – добавляет товар в корзину.
-- `removeItem(productId: string): void` – удаляет товар по ID.
-- `getItems(): IProduct[]` – возвращает список товаров в корзине.
+- `loadFromLocalStorage(): void` – загружает корзину из локального хранилища.
+- `saveToLocalStorage(): void` – сохраняет корзину в локальное хранилище.
 
 ### `OrderProcessor`
 
@@ -128,47 +117,21 @@ yarn build
 
 **Поля:**
 
-- `order: IOrder | null` - объект заказа
+- `events: EventEmitter` – для управления событиями.
 
 **Методы:**
 
-- `createOrder(order: IOrder): void` – проверяет корректность данных и формирует объект заказа.  
-  **Важно:** `OrderProcessor` не отправляет данные на сервер – этим занимается слой Presenter. Метод возвращает заказ для дальнейшей обработки.  
-- `getOrder(); IOrder | null` - возвращает текущий заказ, если он был оформлен
-- `validateOrder(order: IOrder): boolean` – проверяет корректность заполненных полей.
-Если данные невалидны, метод вызывает событие OrderValidationError с текстом ошибки.
+- `validateEmail(email: string): boolean` – проверяет корректность email.
+
+- `validatePhone(phone: string): boolean` – проверяет корректность номера телефона.
+
+- `validateAddress(address: string): boolean` – проверяет корректность адреса.
+
+- `validateOrder(order: IOrder): boolean` – проверяет корректность заказа.
 
 ---
 
 ## Слой представления (View)
-
-### `ProductDetailsView`
-
-Отвечает за отображение деталей товара в модальном окне.
-
-**DOM-элементы:**
-- `modalElement` — контейнер модального окна (`#product-modal`).
-- `addToCartButton` — кнопка "Добавить в корзину" (`#add-to-cart-button`).
-
-**Методы:**
-- `renderProductDetails(product: IProduct): void` — заполняет модальное окно данными о товаре.
-- `updateAddToCartButton(isInCart: boolean): void` — изменяет текст кнопки.
-- `closeModal(): void` — закрывает модальное окно.
-
-### `OrderFormView`
-
-Отвечает за отображение формы заказа и обработку ввода данных.
-
-**DOM-элементы:**
-- `formElement` — контейнер формы заказа (`#order-form`).
-- `errorElement` — элемент для отображения ошибок (`#order-error`).
-
-**Методы:**
-- `render(): void` — отображает форму заказа.
-- `showError(message: string): void` — отображает сообщение об ошибке.
-- `clearForm(): void` — очищает форму.
-- `renderOrderSuccess(order: IOrderResponse): void` — отображает успешный заказ.
-- `renderOrderError(error: string): void` — отображает ошибку.
 
 ### `OrderSuccessView`
 
@@ -195,20 +158,6 @@ yarn build
 - `show(): void` — отображает корзину.
 - `hide(): void` — скрывает корзину.
 
-### Кнопка открытия корзины и счетчик товаров
-
-Кнопка открытия корзины и счетчик товаров находятся в шапке сайта (`header`). Они управляются классом `BasketView`.
-
-**DOM-элементы:**
-- Кнопка открытия корзины: `<button class="header__basket">`.
-- Счетчик товаров: `<span class="header__basket-counter">0</span>`.
-
-**Логика:**
-- При добавлении товара в корзину счетчик обновляется через метод `updateCounter`.
-- При нажатии на кнопку корзины вызывается метод `show`, который отображает корзину.
-
----
-
 ## Слой презентера (Presenter)
 
 Этот слой координирует взаимодействие между моделью и представлением.
@@ -219,28 +168,25 @@ yarn build
 - Обновляет интерфейс при изменении состояния приложения.
 - Обрабатывает пользовательские действия (например, добавление товаров в корзину, оформление заказа).
 
-**События, связанные с товарами:**
-- `ProductListLoaded` - обновляет модель Catalog и представление ProductView.
-- `ProductLoaded` - обновляет представление ProductDetailsView.
-- `ProductAdded` - обновляет модель Basket и представление BasketView.
-- `ProductUpdated` - обновляет модель Basket и представление BasketView.
+Методы:
 
-**События, связанные с корзиной:**
-- `BasketUpdated` - обновляет модель Basket и представление BasketView.
-- `BasketCleared` - обновляет модель Basket и представление BasketView.
+- `init(): Promise<void>` – инициализирует приложение, загружает данные и настраивает обработчики событий.
 
-**События, связанные с заказом:**
-- `OrderCreated` - обновляет модель OrderProcessor и представление OrderSuccessView.
-- `OrderStatusChange` - обновляет модель OrderProcessor и представление OrderView.
-- `OrderFormSubmitted` - обновляет модель OrderProcessor и представление OrderFormView.
+- `setupEventListeners(): void` – настраивает обработчики событий для взаимодействия с пользователем.
 
-**События, связанные с ошибками:**
-- `ErrorOccurred` - обновляет представление OrderFormView или ProductView.
+- `addToBasket(product: IProduct): void` – добавляет товар в корзину.
 
-**События, связанные с UI:**
-- `ModalClosed` - обновляет представление ProductDetailsView или OrderFormView.
-- `BasketOpened` - обновляет представление BasketView.
-- `BasketClosed` - обновляет представление BasketView.
+- `removeFromBasket(productId: string): void` – удаляет товар из корзины.
+
+- `openPaymentModal(): void` – открывает модальное окно для выбора способа оплаты.
+
+- `validatePaymentStep(paymentModal: HTMLElement): void` – проверяет корректность данных на этапе оплаты.
+
+- `openContactsModal(): void` – открывает модальное окно для ввода контактных данных.
+
+- `validateContactsStep(contactsModal: HTMLElement): void` – проверяет корректность контактных данных.
+
+- `createOrder(): void` – создает заказ и отправляет его на сервер.
 
 ---
 

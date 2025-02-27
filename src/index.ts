@@ -1,264 +1,431 @@
 import './scss/styles.scss';
-import { IProduct, IOrder, IOrderView, IOrderResponse, IProductView ,AppEvent } from './types/index';
+import { IProduct, IOrder, IOrderResponse, AppEvent } from './types/types';
+import { Api } from './components/base/api';
+import { EventEmitter } from './components/base/events';
+import { Catalog } from './components/model/catalog';
+import { Basket } from './components/model/basket';
+import { OrderProcessor } from './components/model/orderprocessor';
+import { BasketView } from './components/view/basketView';  
+import { CatalogView } from './components/view/catalogView';
+import { ProductDetailsView } from './components/view/productDetailsView';
+import { OrderSuccessView } from './components/view/orderSuccessview';
 
-// EventEmitter для управления событиями
-class EventEmitter {
-  private events: { [key: string]: Function[] } = {};
-
-  on(event: string, listener: Function): void {
-    if (!this.events[event]) {
-      this.events[event] = [];
-    }
-    this.events[event].push(listener);
-  }
-
-  emit(event: string, data?: any): void {
-    if (this.events[event]) {
-      this.events[event].forEach(listener => listener(data));
-    }
-  }
+enum PaymentMethod {
+  Online = 'online',
+  Cash = 'cash'
 }
 
-// Класс для работы с каталогом товаров (Model)
-class Catalog {
-  private products: IProduct[];
-  private events: EventEmitter;
-
-  constructor(products: IProduct[]) {
-    this.products = products;
-  }
-
-  getAllProducts(): IProduct[] {
-    return this.products;
-  }
-
-  setProducts(products: IProduct[]): void {
-    this.products = products;
-    this.events.emit(AppEvent.BasketUpdated, this.products  );
-  }
+function createModalFromTemplate(templateId: string): HTMLElement {
+    const template = document.querySelector<HTMLTemplateElement>(`#${templateId}`);
+    if (!template) {
+      throw new Error(`Template with id ${templateId} not found`);
+    }
   
-
-  updateProduct(productId: string, updatedProduct: IProduct): void {
-    const productIndex = this.products.findIndex(p => p.id === productId);
-    if (productIndex !== -1) {
-      this.products[productIndex] = updatedProduct;
-      this.events.emit(AppEvent.ProductUpdated, updatedProduct);
-    }
-  }
+    const modalContainer = document.createElement('div');
+    modalContainer.classList.add('modal');
+  
+    const modalContent = document.createElement('div');
+    modalContent.classList.add('modal__content');
+  
+    const clone = document.importNode(template.content, true);
+    modalContent.appendChild(clone);
+  
+    modalContainer.appendChild(modalContent);
+  
+    document.body.appendChild(modalContainer);
+  
+    return modalContainer;
 }
-
-// Класс корзины (Model)
-class Basket {
-  private items: IProduct[] = [];
-  private events: EventEmitter;
-
-  constructor(events: EventEmitter) {
-    this.events = events;
-  }
-
-  addItem(product: IProduct): void {
-    this.items.push(product);
-    this.events.emit(AppEvent.BasketUpdated, this.items);
-  }
-
-  removeItem(productId: string): void {
-    this.items = this.items.filter(item => item.id !== productId);
-    this.events.emit(AppEvent.BasketUpdated, this.items);
-  }
-
-  getItems(): IProduct[] {
-    return this.items;
-  }
-
-  clear(): void {
-    this.items = [];
-    this.events.emit(AppEvent.BasketUpdated, this.items);
-  }
-
-  getTotalPrice(): number {
-    return this.items.reduce((total, item) => total + (item.price || 0), 0);
-  }
-}
-
-// Класс заказа (Model)
-class OrderProcessor {
-  private events: EventEmitter;
-  private order: IOrder | null = null;  
-
-  constructor(events: EventEmitter) {
-    this.events = events;
-  }
-
-  validateOrder(order: IOrder): boolean {
-    if (!order.email.includes("@")) {
-      events.emit("OrderValidationError", "Некорректный email");
-      return false;
-    }
-    if (!order.phone.match(/^\d{10,15}$/)) {
-      events.emit("OrderValidationError", "Некорректн ый номер телефона");
-      return false;
-    }
-    return true;
-  }
-
-  createOrder(order: IOrder): void {
-    if (!order.email || !order.phone || !order.address) {
-      throw new Error('Все поля должны быть заполнены');
-    }
-    this.order = order;
-    this.events.emit(AppEvent.OrderStatusChanged, { orderId: order.items, status: 'created' });
-  }
-
-  getOrder(): IOrder | null {
-    return this.order;
-  }
-}
-
-// Класс для отображения корзины (view)
-class BasketView {
-  private basketElement: HTMLElement;
-  private counterElement: HTMLElement;
-
-  constructor() {
-    this.basketElement = document.getElementById('basket')!;
-    this.counterElement = document.getElementById('basket-counter')!;
-  }
-
-  render(items: IProduct[]): void {
-    this.basketElement.innerHTML = items.map(item => `<div>${item.title}</div>`).join('');
-  }
-
-  updateCounter(count: number): void {
-    this.counterElement.textContent = count.toString();
-  }
-
-  show(): void {
-    this.basketElement.style.display = 'block';
-  }
-
-  hide(): void {
-    this.basketElement.style.display = 'none';
-  }
-}
-
-// Класс для отображения деталей товара (view)
-class ProductDetailsView implements IProductView {
-  private modalElement: HTMLElement;
-  private addToCartButton: HTMLElement;
-
-  constructor() {
-    this.modalElement = document.getElementById('product-modal')!;
-    this.addToCartButton = document.getElementById('add-to-cart-button')!;
-  }
-
-  renderProductDetails(product: IProduct): void {
-    this.modalElement.innerHTML = `
-      <h2>${product.title}</h2>
-      <p>${product.description}</p>
-      <p>Цена: ${product.price} руб.</p>
-    `;
-    this.modalElement.style.display = 'block';
-  }
-
-  updateAddToCartButton(isInCart: boolean): void {
-    this.addToCartButton.textContent = isInCart ? 'Убрать из корзины' : 'Добавить в корзину';
-  }
-
-  closeModal(): void {
-    this.modalElement.style.display = 'none';
-  }
-
-  renderProducts(products: IProduct[]): void {
-    console.log("Список товаров:", products);
-  }
-}
-
-// Класс для отображения формы заказа (view)
-class OrderFormView implements IOrderView {
-  private formElement: HTMLElement;
-  private errorElement: HTMLElement;
-
-  constructor() {
-    this.formElement = document.getElementById('order-form')!;
-    this.errorElement = document.getElementById('order-error')!;
-  }
-
-  render(): void {
-    this.formElement.style.display = 'block';
-  }
-
-  showError(message: string): void {
-    this.errorElement.textContent = message;
-  }
-
-  clearForm(): void {
-    this.formElement.style.display = 'none';
-    this.errorElement.textContent = '';
-  }
-
-  renderOrderSuccess(order: IOrderResponse): void {
-    alert(`Заказ успешно оформлен! ID заказа: ${order.id}, Сумма: ${order.total} руб.`);
-    this.clearForm();
-  }
-
-  renderOrderError(error: string): void {
-    this.showError(`Ошибка при оформлении заказа: ${error}`);
-  }
-}
-
-// Класс для отображения успешного заказа (view)
-class OrderSuccessView {
-  private successElement: HTMLElement;
-
-  constructor() {
-    this.successElement = document.getElementById('order-success')!;
-  }
-
-  render(order: IOrderResponse): void {
-    this.successElement.innerHTML = `
-      <h2>Заказ успешно оформлен!</h2>
-      <p>Номер заказа: ${order.id}</p>
-      <p>Итоговая сумма: ${order.total} руб.</p>
-    `;
-    this.successElement.style.display = 'block';
-  }
-}
-
 
 // Presenter
 class Presenter {
-  private catalog: Catalog;
-  private basket: Basket;
-  private orderProcessor: OrderProcessor;
-  private events: EventEmitter;
+    private catalog: Catalog;
+    private basket: Basket;
+    private orderProcessor: OrderProcessor;
+    private events: EventEmitter;
+    private api: Api;
+    private productDetailsView: ProductDetailsView;
+    private catalogView: CatalogView;
+    private basketView: BasketView;
+    private orderSuccessView: OrderSuccessView;
+  
+    private currentPaymentMethod: PaymentMethod | null = null;
+    private currentOrder: IOrder | null = null;
+  
+    constructor(catalog: Catalog, basket: Basket, orderProcessor: OrderProcessor, events: EventEmitter, api: Api) {
+      this.catalog = catalog;
+      this.basket = basket;
+      this.orderProcessor = orderProcessor;
+      this.events = events;
+      this.api = api;
+      this.productDetailsView = new ProductDetailsView(events);
+      this.catalogView = new CatalogView();
+      this.basketView = new BasketView();
+      this.orderSuccessView = new OrderSuccessView();
+      this.init();
+    }
+  
+    private async init(): Promise<void> {
+      try {
+        const products = await this.catalog.getAllProducts();
+        this.events.emit(AppEvent.ProductListLoaded, products);
+        this.catalogView.renderProducts(products);
+  
+        this.basketView.render(this.basket.getItems());
+        this.basketView.updateCounter(this.basket.getItems().length);
+        this.basketView.updateTotalPrice(this.basket.getTotalPrice());
+  
+        this.basketView.setOnDeleteItemCallback((productId) => {
+          this.removeFromBasket(productId);
+        });
+  
+        this.setupEventListeners();
+      } catch (error) {
+        this.events.emit(AppEvent.ErrorOccurred, { message: error instanceof Error ? error.message : "Неизвестная ошибка" });
+      }
+    }
+  
+    private setupEventListeners(): void {
+      this.catalogView.galleryElement.addEventListener('click', (event) => {
+        const cardElement = (event.target as HTMLElement).closest('.gallery__item') as HTMLElement;
+        if (cardElement) {
+          const productId = cardElement.dataset.id;
+          const product = this.catalog.getProductById(productId);
+          if (product) {
+            this.productDetailsView.renderProductDetails(product);
+  
+            const closeButton = this.productDetailsView.getCloseButton();
+            if (closeButton) {
+              closeButton.addEventListener('click', () => this.productDetailsView.closeModal());
+            }
+          }
+        }
+      });
+  
+      this.events.on(AppEvent.ProductAdded, (product: IProduct) => {
+        this.addToBasket(product);
+      });
+  
+      this.events.on(AppEvent.ProductRemoved, (event: { productId: string }) => {
+        this.removeFromBasket(event.productId);
+      });
+  
+      this.events.on(AppEvent.OrderCreated, (order: IOrderResponse) => {
+        this.orderSuccessView.render(order);
+      });
+  
+      const basketButton = document.querySelector('.header__basket');
+      if (basketButton) {
+        basketButton.addEventListener('click', () => {
+          this.basketView.render(this.basket.getItems());
+          this.basketView.openModal();
+  
+          const basketCloseButton = this.basketView.getModalElement().querySelector('.modal__close');
+          if (basketCloseButton) {
+            basketCloseButton.addEventListener('click', () => this.basketView.closeModal());
+          }
+  
+          const orderButton = this.basketView.getOrderButton();
+          if (orderButton) {
+            orderButton.addEventListener('click', () => this.openPaymentModal());
+          }
+        });
+      }
+    }
+  
+    private closeAllModals(): void {
+      const activeModals = document.querySelectorAll('.modal_active');
+      activeModals.forEach(modal => {
+        modal.classList.remove('modal_active');
+      });
+    }
+  
+    private openPaymentModal(): void {
+      this.closeAllModals();
+  
+      const paymentModal = createModalFromTemplate('order');
+      paymentModal.classList.add('modal_active');
+    
+      const closeButton = paymentModal.querySelector('.modal__close');
+      if (closeButton) {
+        closeButton.addEventListener('click', () => {
+          paymentModal.classList.remove('modal_active');
+        });
+      }
+    
+      const addressInput = paymentModal.querySelector('input[name="address"]') as HTMLInputElement;
+      const nextButton = paymentModal.querySelector('.order__button') as HTMLButtonElement;
+      const errorsElement = paymentModal.querySelector('.form__errors') as HTMLElement;
+    
+      if (!errorsElement) {
+        return;
+      }
+    
+      if (nextButton) {
+        nextButton.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.validatePaymentStep(paymentModal);
+        });
+      }
+    
+      const paymentButtons = paymentModal.querySelectorAll('.button_alt');
+      paymentButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          this.handlePaymentMethodSelection(button, paymentButtons);
+          this.updateNextButtonState(addressInput, nextButton);
+        });
+      });
+    
+      if (addressInput) {
+        addressInput.addEventListener('input', () => {
+          this.validateAddressInRealTime(addressInput, errorsElement);
+          this.updateNextButtonState(addressInput, nextButton);
+        });
+      }
+    
+      if (nextButton) {
+        nextButton.disabled = true;
+      }
+    }
+    
+    private validateAddressInRealTime(addressInput: HTMLInputElement, errorsElement: HTMLElement): void {
+      if (!addressInput || !addressInput.value.trim()) {
+        errorsElement.textContent = 'Введите адрес доставки';
+        return;
+      }
+    
+      if (addressInput.value.trim().length < 10) {
+        errorsElement.textContent = 'Адрес должен содержать минимум 10 символов';
+        return;
+      }
+    
+      errorsElement.textContent = '';
+    }
+  
+    private updateNextButtonState(addressInput: HTMLInputElement, nextButton: HTMLButtonElement): void {
+      const isPaymentMethodSelected = this.currentPaymentMethod !== null;
+      const isAddressFilled = addressInput.value.trim() !== '' && addressInput.value.trim().length >= 10;
+  
+      nextButton.disabled = !(isPaymentMethodSelected && isAddressFilled);
+    }
+  
+    private handlePaymentMethodSelection(selectedButton: Element, allButtons: NodeListOf<Element>): void {
+      allButtons.forEach(button => {
+        button.classList.remove('button_alt-active');
+      });
+  
+      selectedButton.classList.add('button_alt-active');
+  
+      if (selectedButton.textContent === 'Онлайн') {
+        this.currentPaymentMethod = PaymentMethod.Online;
+      } else if (selectedButton.textContent === 'При получении') {
+        this.currentPaymentMethod = PaymentMethod.Cash;
+      }
+    }
+  
+    private validatePaymentStep(paymentModal: HTMLElement): void {
+        const addressInput = paymentModal.querySelector('input[name="address"]') as HTMLInputElement;
+        const errorsElement = paymentModal.querySelector('.form__errors') as HTMLElement;
+    
+        if (!errorsElement) {
+            return;
+        }
+    
+        if (!addressInput || !addressInput.value.trim()) {
+            errorsElement.textContent = 'Введите адрес доставки';
+            return;
+        }
+    
+        if (addressInput.value.trim().length < 10) {
+            errorsElement.textContent = 'Адрес должен содержать минимум 10 символов';
+            return;
+        }
+    
+        errorsElement.textContent = '';
+    
+        this.currentOrder = {
+            ...this.currentOrder,
+            address: addressInput.value.trim(),
+        };
+    
+        paymentModal.classList.remove('modal_active');
+    
+        this.openContactsModal();
+    }
+    
+      private openContactsModal(): void {
+        this.closeAllModals();
+  
+        const contactsModal = createModalFromTemplate('contacts');
+        contactsModal.classList.add('modal_active');
+      
+        const closeButton = contactsModal.querySelector('.modal__close');
+        if (closeButton) {
+          closeButton.addEventListener('click', () => {
+            contactsModal.classList.remove('modal_active');
+          });
+        }
+      
+        const emailInput = contactsModal.querySelector('input[name="email"]') as HTMLInputElement;
+        const phoneInput = contactsModal.querySelector('input[name="phone"]') as HTMLInputElement;
+        const errorsElement = contactsModal.querySelector('.form__errors') as HTMLElement;
+        const payButton = contactsModal.querySelector('.button') as HTMLButtonElement;
+      
+        if (!errorsElement || !payButton) {
+          return;
+        }
+      
+        payButton.disabled = true;
+      
+        if (emailInput) {
+          emailInput.addEventListener('input', () => {
+            this.validateEmailInRealTime(emailInput, errorsElement);
+            this.updatePayButtonState(emailInput, phoneInput, payButton);
+          });
+        }
+      
+        if (phoneInput) {
+          phoneInput.addEventListener('input', () => {
+            this.validatePhoneInRealTime(phoneInput, errorsElement);
+            this.updatePayButtonState(emailInput, phoneInput, payButton);
+          });
+        }
+      
+        payButton.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.validateContactsStep(contactsModal);
+        });
+      }
+      
+      private validateEmailInRealTime(emailInput: HTMLInputElement, errorsElement: HTMLElement): void {
+        if (!emailInput || !emailInput.value.trim() || !emailInput.value.includes('@')) {
+          errorsElement.textContent = 'Введите корректный email';
+          return;
+        }
+      
+        errorsElement.textContent = '';
+      }
+      
+      private validatePhoneInRealTime(phoneInput: HTMLInputElement, errorsElement: HTMLElement): void {
+        const cleanedPhone = phoneInput.value.replace(/[^\d+]/g, '');
+      
+        if (!cleanedPhone.match(/^(\+7|8)\d{10}$/)) {
+          errorsElement.textContent = 'Некорректный номер телефона';
+          return;
+        }
+      
+        errorsElement.textContent = '';
+      }
+  
+      private updatePayButtonState(emailInput: HTMLInputElement, phoneInput: HTMLInputElement, payButton: HTMLButtonElement): void {
+        const isEmailValid = this.orderProcessor.validateEmail(emailInput.value.trim());
+        const isPhoneValid = this.orderProcessor.validatePhone(phoneInput.value);
+      
+        payButton.disabled = !(isEmailValid && isPhoneValid);
+      }
+  
+      private validateContactsStep(contactsModal: HTMLElement): void {
+        const emailInput = contactsModal.querySelector('input[name="email"]') as HTMLInputElement;
+        const phoneInput = contactsModal.querySelector('input[name="phone"]') as HTMLInputElement;
+        const errorsElement = contactsModal.querySelector('.form__errors') as HTMLElement;
+        const payButton = contactsModal.querySelector('.button') as HTMLButtonElement;
+    
+        if (!errorsElement || !payButton) {
+            return;
+        }
+    
+        if (!emailInput || !emailInput.value.trim() || !emailInput.value.includes('@')) {
+            errorsElement.textContent = 'Введите корректный email';
+            return;
+        }
+    
+        if (!phoneInput || !this.orderProcessor.validatePhone(phoneInput.value)) {
+            errorsElement.textContent = 'Введите корректный номер телефона';
+            return;
+        }
+    
+        errorsElement.textContent = '';
+    
+        const order: IOrder = {
+            payment: this.currentPaymentMethod || PaymentMethod.Online,
+            address: this.currentOrder?.address || '',
+            email: emailInput.value.trim(),
+            phone: phoneInput.value.trim(),
+            total: this.basket.getTotalPrice(),
+            items: this.basket.getItems().map(item => item.id),
+        };
 
-  constructor(catalog: Catalog, basket: Basket, orderProcessor: OrderProcessor, events: EventEmitter) {
-    this.catalog = catalog;
-    this.basket = basket;
-    this.orderProcessor = orderProcessor;
-    this.events = events;
-    this.init();
-  }
+        console.log(order)
 
-  private init(): void {
-    this.events.on(AppEvent.ProductListLoaded, (products: IProduct[]) => console.log('Обновлен список товаров', products));
-    this.events.on(AppEvent.OrderCreated, (order: IOrder) => console.log('Заказ создан', order));
-    this.events.on(AppEvent.BasketUpdated, (items: IProduct[]) => {
-      console.log('Корзина обновлена', items);
-    });
-  }
+        this.api.createOrder(order)
+            .then((response) => {
+                contactsModal.classList.remove('modal_active');
+                this.basket.clear();
+                this.basketView.render(this.basket.getItems());
+                this.basketView.updateCounter(this.basket.getItems().length);
+                this.basketView.updateTotalPrice(this.basket.getTotalPrice());
+                this.orderSuccessView.render(response);
+                this.closeAllModals();
+                this.orderSuccessView.openModal();
+    
+                const successCloseButton = this.orderSuccessView.getModalElement().querySelector('.order-success__close');
+                if (successCloseButton) {
+                    successCloseButton.addEventListener('click', () => {
+                        this.orderSuccessView.closeModal();
+                    });
+                }
+            })
+            .catch((error) => {
+                this.events.emit(AppEvent.ErrorOccurred, { message: error instanceof Error ? error.message : "Неизвестная ошибка" });
+            });
+    }
+  
+    private createOrder(): void {
+      const order: IOrder = {
+        payment: this.currentPaymentMethod || PaymentMethod.Online,
+        address: '',
+        email: '',
+        phone: '',
+        total: this.basket.getTotalPrice(),
+        items: this.basket.getItems().map(item => item.id),
+      };
+  
+      this.api.createOrder(order)
+        .then((response) => {
+          this.events.emit(AppEvent.OrderCreated, response);
+          this.basket.clear();
+          this.basketView.render(this.basket.getItems());
+          this.basketView.updateCounter(this.basket.getItems().length);
+          this.basketView.updateTotalPrice(this.basket.getTotalPrice());
+        })
+        .catch((error) => {
+          this.events.emit(AppEvent.ErrorOccurred, { message: error instanceof Error ? error.message : "Неизвестная ошибка" });
+        });
+    }
+  
+    private addToBasket(product: IProduct): void {
+      this.basket.addItem(product);
+      this.basketView.render(this.basket.getItems());
+      this.basketView.updateCounter(this.basket.getItems().length);
+      this.basketView.updateTotalPrice(this.basket.getTotalPrice());
+    }
+  
+    private removeFromBasket(productId: string): void {
+      this.basket.removeItem(productId);
+      this.basketView.render(this.basket.getItems());
+      this.basketView.updateCounter(this.basket.getItems().length);
+      this.basketView.updateTotalPrice(this.basket.getTotalPrice());
+    }
 }
 
 // Инициализация
+const api = new Api('https://larek-api.nomoreparties.co/api/weblarek');
 const events = new EventEmitter();
-const sampleProducts: IProduct[] = [
-  { id: '1', title: 'Фреймворк куки судьбы', price: 2500, category: 'софт-скил', description: 'Описание товара', image: 'image1.png' },
-  { id: '2', title: '+1 час в сутках', price: 750, category: 'другое', description: 'Описание товара', image: 'image2.png' }
-];
 
-const catalog = new Catalog(sampleProducts);
+const catalog = new Catalog(api, events);
 const basket = new Basket(events);
 const orderProcessor = new OrderProcessor(events);
-const presenter = new Presenter(catalog, basket, orderProcessor, events);
 
-console.log('Каталог товаров:', catalog.getAllProducts());
+catalog.loadProducts();
+
+const presenter = new Presenter(catalog, basket, orderProcessor, events, api);

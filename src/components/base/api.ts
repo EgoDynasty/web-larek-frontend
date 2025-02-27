@@ -1,3 +1,5 @@
+import { IProduct, IOrderResponse, IOrder } from "../../types/types";
+
 export type ApiListResponse<Type> = {
     total: number,
     items: Type[]
@@ -19,24 +21,42 @@ export class Api {
         };
     }
 
+    // Обработка ответа от сервера
     protected handleResponse(response: Response): Promise<object> {
         if (response.ok) return response.json();
         else return response.json()
             .then(data => Promise.reject(data.error ?? response.statusText));
     }
 
-    get(uri: string) {
+    // GET-запрос
+    get<T>(uri: string): Promise<T> {
         return fetch(this.baseUrl + uri, {
             ...this.options,
             method: 'GET'
-        }).then(this.handleResponse);
+        }).then(this.handleResponse) as Promise<T>;
     }
 
-    post(uri: string, data: object, method: ApiPostMethods = 'POST') {
+    // POST/PUT/DELETE-запрос
+    post<T>(uri: string, data: object, method: ApiPostMethods = 'POST'): Promise<T> {
         return fetch(this.baseUrl + uri, {
             ...this.options,
             method,
             body: JSON.stringify(data)
-        }).then(this.handleResponse);
+        }).then(this.handleResponse) as Promise<T>;
+    }
+
+    // Получение списка товаров
+    async getProducts(): Promise<ApiListResponse<IProduct>> {
+        return this.get<ApiListResponse<IProduct>>("/product");
+    }
+
+    // Получение информации о конкретном товаре
+    async getProductById(id: string): Promise<IProduct> {
+        return this.get<IProduct>(`/product/${id}`);
+    }
+
+    // Создание заказа
+    async createOrder(order: IOrder): Promise<IOrderResponse> {
+        return this.post<IOrderResponse>("/order", order);
     }
 }

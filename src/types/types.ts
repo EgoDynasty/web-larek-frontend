@@ -1,4 +1,3 @@
-// Базовые типы данных
 export interface IProduct {
   id: string;
   description: string;
@@ -47,7 +46,9 @@ export enum AppEvent {
   BasketUpdated = 'basket_updated',
   OrderStatusChanged = 'order_status_changed',
   ProductAdded = 'product_added',
+  ProductRemoved = 'product_removed',
   ProductUpdated = 'product_updated',
+  ProductSelected = 'product_selected',
 }
 
 export interface IProductListEvent {
@@ -90,6 +91,16 @@ export interface IProductUpdatedEvent {
   data: IProduct;
 }
 
+export interface IProductRemovedEvent {
+  type: AppEvent.ProductRemoved;
+  data: IProduct;
+}
+
+export interface IProductSelectedEvent {
+  type: AppEvent.ProductSelected;
+  data: IProduct;
+}
+
 export type AppEvents =
   | IProductListEvent
   | IProductEvent
@@ -98,7 +109,9 @@ export type AppEvents =
   | IBasketUpdatedEvent
   | IOrderStatusChangedEvent
   | IProductAddedEvent
-  | IProductUpdatedEvent;
+  | IProductRemovedEvent
+  | IProductUpdatedEvent
+  | IProductSelectedEvent;
 
 // Типы для моделей данных
 export interface IProductModel {
@@ -114,7 +127,6 @@ export interface IOrderModel {
 
 // Типы для отображений
 export interface IProductView {
-  renderProducts(products: IProduct[]): void;
   renderProductDetails(product: IProduct): void;
 }
 
@@ -132,4 +144,40 @@ export interface IEventEmitter {
 
 export interface IController {
   handleEvent(event: AppEvents): void;
+}
+
+// Добавленные интерфейсы для View
+export interface IBasketView {
+  render(items: IProduct[]): void;
+  updateCounter(count: number): void;
+  updateTotalPrice(totalPrice: number): void;
+  calculateTotalPrice(items: IProduct[]): number;
+  openModal(): void;
+  closeModal(): void;
+  getModalElement(): HTMLElement;
+  getOrderButton(): HTMLElement | null;
+  setOnDeleteItemCallback(callback: (productId: string) => void): void;
+}
+
+export interface ICatalogView {
+  renderProducts(products: IProduct[]): void;
+}
+
+export interface IProductDetailsView extends IProductView {
+  openModal(): void;
+  closeModal(): void;
+  getCloseButton(): HTMLElement | null;
+}
+
+export interface IOrderSuccessView {
+  render(order: IOrderResponse): void;
+  openModal(): void;
+  closeModal(): void;
+  getModalElement(): HTMLElement;
+}
+
+export interface IModal {
+  openModal(): void;
+  closeModal(): void;
+  getModalElement(): HTMLElement;
 }
