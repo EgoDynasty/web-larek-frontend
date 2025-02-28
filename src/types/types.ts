@@ -53,8 +53,18 @@ export enum AppEvent {
   ProductDetailsOpened = 'product-details-opened',
   BasketOpened = 'basket-opened',
   OrderStarted = 'order-started',
+  PaymentSelected = 'payment-selected',
+  AddressChanged = 'address-changed',
+  AddressUpdated = 'address-updated',
+  EmailChanged = 'email-changed',
+  EmailUpdated = 'email-updated',
+  PhoneChanged = 'phone-changed',
+  PhoneUpdated = 'phone-updated',
+  PaymentSubmitted = 'payment-submitted',
+  ContactsSubmitted = 'contacts-submitted',
 }
 
+// Интерфейсы для событий
 export interface IProductListEvent {
   type: AppEvent.ProductListLoaded;
   data: IProductListResponse;
@@ -82,7 +92,7 @@ export interface IBasketUpdatedEvent {
 
 export interface IOrderStatusChangedEvent {
   type: AppEvent.OrderStatusChanged;
-  data: { orderId: string, status: string };
+  data: { orderId: string; status: string };
 }
 
 export interface IProductAddedEvent {
@@ -90,19 +100,67 @@ export interface IProductAddedEvent {
   data: IProduct;
 }
 
-export interface IProductUpdatedEvent {
-  type: AppEvent.ProductUpdated;
-  data: IProduct;
-}
-
 export interface IProductRemovedEvent {
   type: AppEvent.ProductRemoved;
+  data: { productId: string };
+}
+
+export interface IProductUpdatedEvent {
+  type: AppEvent.ProductUpdated;
   data: IProduct;
 }
 
 export interface IProductSelectedEvent {
   type: AppEvent.ProductSelected;
   data: IProduct;
+}
+
+export interface IProductDetailsOpenedEvent {
+  type: AppEvent.ProductDetailsOpened;
+  data: IProduct;
+}
+
+export interface IPaymentSelectedEvent {
+  type: AppEvent.PaymentSelected;
+  data: string;
+}
+
+export interface IAddressChangedEvent {
+  type: AppEvent.AddressChanged;
+  data: string;
+}
+
+export interface IAddressUpdatedEvent {
+  type: AppEvent.AddressUpdated;
+  data: { address: string; isValid: boolean; error: string };
+}
+
+export interface IEmailChangedEvent {
+  type: AppEvent.EmailChanged;
+  data: string;
+}
+
+export interface IEmailUpdatedEvent {
+  type: AppEvent.EmailUpdated;
+  data: { email: string; isValid: boolean; error: string };
+}
+
+export interface IPhoneChangedEvent {
+  type: AppEvent.PhoneChanged;
+  data: string;
+}
+
+export interface IPhoneUpdatedEvent {
+  type: AppEvent.PhoneUpdated;
+  data: { phone: string; isValid: boolean; error: string };
+}
+
+export interface IPaymentSubmittedEvent {
+  type: AppEvent.PaymentSubmitted;
+}
+
+export interface IContactsSubmittedEvent {
+  type: AppEvent.ContactsSubmitted;
 }
 
 export type AppEvents =
@@ -115,7 +173,17 @@ export type AppEvents =
   | IProductAddedEvent
   | IProductRemovedEvent
   | IProductUpdatedEvent
-  | IProductSelectedEvent;
+  | IProductSelectedEvent
+  | IProductDetailsOpenedEvent
+  | IPaymentSelectedEvent
+  | IAddressChangedEvent
+  | IAddressUpdatedEvent
+  | IEmailChangedEvent
+  | IEmailUpdatedEvent
+  | IPhoneChangedEvent
+  | IPhoneUpdatedEvent
+  | IPaymentSubmittedEvent
+  | IContactsSubmittedEvent;
 
 // Типы для моделей данных
 export interface IProductModel {
@@ -150,17 +218,13 @@ export interface IController {
   handleEvent(event: AppEvents): void;
 }
 
-// Добавленные интерфейсы для View
+// Интерфейсы для View
 export interface IBasketView {
-  render(items: IProduct[]): void;
+  setItems(items: HTMLElement[]): void;
   updateCounter(count: number): void;
   updateTotalPrice(totalPrice: number): void;
   calculateTotalPrice(items: IProduct[]): number;
-  openModal(): void;
-  closeModal(): void;
-  getModalElement(): HTMLElement;
-  getOrderButton(): HTMLElement | null;
-  setOnDeleteItemCallback(callback: (productId: string) => void): void;
+  getContent(): HTMLElement;
 }
 
 export interface ICatalogView {
@@ -168,20 +232,29 @@ export interface ICatalogView {
 }
 
 export interface IProductDetailsView extends IProductView {
-  openModal(): void;
-  closeModal(): void;
-  getCloseButton(): HTMLElement | null;
+  getContent(): HTMLElement;
 }
 
 export interface IOrderSuccessView {
   render(order: IOrderResponse): void;
-  openModal(): void;
-  closeModal(): void;
-  getModalElement(): HTMLElement;
+  getContent(): HTMLElement;
+}
+
+export interface IOrderPaymentView {
+  setError(error: string): void;
+  setButtonState(isEnabled: boolean): void;
+  getContent(): HTMLElement;
+}
+
+export interface IOrderContactsView {
+  setError(error: string): void;
+  setButtonState(isEnabled: boolean): void;
+  getContent(): HTMLElement;
 }
 
 export interface IModal {
-  openModal(): void;
-  closeModal(): void;
+  open(): void;
+  close(): void;
+  setContent(content: HTMLElement): void;
   getModalElement(): HTMLElement;
 }

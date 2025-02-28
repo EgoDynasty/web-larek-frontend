@@ -1,44 +1,57 @@
-import { Modal } from './modal';
+import { AppEvent } from '../../types/types';
+import { EventEmitter } from '../base/events';
 
 export class OrderContactsView {
-  private modal: Modal;
-  private payButton: HTMLElement | null;
+  private contactsContainer: HTMLElement;
+  private emailInput: HTMLInputElement;
+  private phoneInput: HTMLInputElement;
+  private payButton: HTMLButtonElement;
+  private errorsElement: HTMLElement;
+  private events: EventEmitter;
 
-  constructor() {
-    this.modal = new Modal({
-      templateId: 'contacts',
-      onClose: () => this.handleClose(),
+  constructor(events: EventEmitter) {
+    this.events = events;
+
+    const template = document.querySelector<HTMLTemplateElement>('#contacts');
+    if (!template) throw new Error('Template #contacts not found');
+    this.contactsContainer = document.importNode(template.content, true).querySelector('.form') as HTMLElement;
+
+    this.emailInput = this.contactsContainer.querySelector('input[name="email"]') as HTMLInputElement;
+    this.phoneInput = this.contactsContainer.querySelector('input[name="phone"]') as HTMLInputElement;
+    this.payButton = this.contactsContainer.querySelector('.button') as HTMLButtonElement;
+    this.errorsElement = this.contactsContainer.querySelector('.form__errors') as HTMLElement;
+
+    this.payButton.disabled = true;
+
+    this.setupEventListeners();
+  }
+
+  private setupEventListeners(): void {
+    this.emailInput.addEventListener('input', () => {
+      this.events.emit(AppEvent.EmailChanged, { data: this.emailInput.value });
     });
 
-    this.payButton = this.modal.getModalElement().querySelector('.button');
+    this.phoneInput.addEventListener('input', () => {
+      this.events.emit(AppEvent.PhoneChanged, { data: this.phoneInput.value });
+    });
+
+    this.contactsContainer.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!this.payButton.disabled) {
+        this.events.emit(AppEvent.ContactsSubmitted);
+      }
+    });
   }
 
-  render(): void {
-    this.modal.open();
+  setError(error: string): void {
+    this.errorsElement.textContent = error;
   }
 
-
-  setOnPayButtonClick(callback: () => void): void {
-    if (this.payButton) {
-      this.payButton.addEventListener('click', (e) => {
-        e.preventDefault();
-        callback();
-      });
-    }
+  setButtonState(isEnabled: boolean): void {
+    this.payButton.disabled = !isEnabled;
   }
 
-  getModal(): Modal {
-    return this.modal;
-  }
-
-  close(): void {
-    this.modal.close();
-  }
-
-  destroy(): void {
-    this.modal.destroy();
-  }
-
-  private handleClose(): void {
+  getContent(): HTMLElement {
+    return this.contactsContainer;
   }
 }

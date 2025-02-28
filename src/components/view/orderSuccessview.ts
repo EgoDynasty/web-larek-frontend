@@ -1,54 +1,30 @@
 import { IOrderResponse } from '../../types/types';
-import { Modal } from './modal';
 
 export class OrderSuccessView {
-  private modal: Modal;
+  private content: HTMLElement;
 
   constructor() {
-    this.modal = new Modal({
-      templateId: 'success',
-      onClose: () => this.handleClose(),
-    });
+    const template = document.querySelector<HTMLTemplateElement>('#success');
+    if (!template) throw new Error('Template #success not found');
+    this.content = document.importNode(template.content, true).querySelector('.order-success') as HTMLElement;
+    this.setupEventListeners();
   }
 
   render(order: IOrderResponse): void {
-    const successTemplate = document.querySelector<HTMLTemplateElement>('#success');
-    if (!successTemplate) {
-      throw new Error('Template #success not found');
-    }
-
-    const successElement = document.importNode(successTemplate.content, true);
-    const title = successElement.querySelector('.order-success__title');
-    const description = successElement.querySelector('.order-success__description');
-    const closeButton = successElement.querySelector('.order-success__close') as HTMLButtonElement;
-
-    if (title && description) {
-      title.textContent = 'Заказ оформлен!';
-      description.textContent = `Списано ${order.total} синапсов`;
-    }
-
-    if (closeButton) {
-      closeButton.addEventListener('click', () => {
-        this.modal.close();
-      });
-    }
-
-    this.modal.setContent(successElement);
-    this.modal.open();
+    const title = this.content.querySelector('.order-success__title')!;
+    const description = this.content.querySelector('.order-success__description')!;
+    title.textContent = 'Заказ оформлен!';
+    description.textContent = `Списано ${order.total} синапсов`;
   }
 
-  getModal(): Modal {
-    return this.modal;
+  private setupEventListeners(): void {
+    const closeButton = this.content.querySelector('.order-success__close') as HTMLButtonElement;
+    closeButton.addEventListener('click', () => {
+      document.querySelector('.modal')!.classList.remove('modal_active');
+    });
   }
 
-  close(): void {
-    this.modal.close();
-  }
-
-  destroy(): void {
-    this.modal.destroy();
-  }
-
-  private handleClose(): void {
+  getContent(): HTMLElement {
+    return this.content;
   }
 }
