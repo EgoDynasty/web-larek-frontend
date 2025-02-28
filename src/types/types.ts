@@ -5,6 +5,7 @@ export interface IProduct {
   title: string;
   category: string;
   price: number | null;
+  index?: number;
 }
 
 export interface IProductListResponse {
@@ -49,6 +50,9 @@ export enum AppEvent {
   ProductRemoved = 'product_removed',
   ProductUpdated = 'product_updated',
   ProductSelected = 'product_selected',
+  ProductDetailsOpened = 'product-details-opened',
+  BasketOpened = 'basket-opened',
+  OrderStarted = 'order-started',
 }
 
 export interface IProductListEvent {

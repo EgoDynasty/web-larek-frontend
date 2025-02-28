@@ -1,31 +1,20 @@
 import { IProduct, AppEvent } from '../../types/types';
-import { Api } from '../base/api';
 import { EventEmitter } from '../base/events';
 
 export class Catalog {
   private products: IProduct[] = [];
   private events: EventEmitter;
-  private api: Api;
 
-  constructor(api: Api, events: EventEmitter) {
-    this.api = api;
+  constructor(events: EventEmitter) {
     this.events = events;
   }
 
-  async loadProducts(): Promise<void> {
-    try {
-      const response = await this.api.getProducts();
-      this.products = response.items;
-      this.events.emit(AppEvent.ProductListLoaded, this.products);
-    } catch (error) {
-      this.events.emit(AppEvent.ErrorOccurred, { message: error instanceof Error ? error.message : "Неизвестная ошибка" });
-    }
+  setProducts(products: IProduct[]): void {
+    this.products = products;
+    this.events.emit(AppEvent.ProductListLoaded, this.products);
   }
 
-  async getAllProducts(): Promise<IProduct[]> {
-    if (this.products.length === 0) {
-      await this.loadProducts();
-    }
+  getAllProducts(): IProduct[] {
     return this.products;
   }
 

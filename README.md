@@ -81,13 +81,14 @@ yarn build
 
 **Поля:**
 - `products: IProduct[]` – массив товаров, загружаемый из API или предустановленных данных.
+- `events: EventEmitter` — для отправки событий, например, когда список товаров обновляется.
 
 **Конструктор:**
 
-- `constructor(products: IProduct[])` – получает массив товаров и сохраняет их.
+- `constructor(events: EventEmitter)` — принимает объект событий и создаёт пустой каталог.
 
 **Методы:**
-- `loadProducts(): Promise<void>` – загружает список товаров из API.
+- `setProducts(products: IProduct[]): void` — заполняет каталог товарами и отправляет событие ProductListLoaded.
 - `getAllProducts(): IProduct[]` – возвращает полный список товаров.
 = `getProductById(id: string): IProduct | undefined` – возвращает товар по ID.
 - `updateProduct(productId: string, updatedProduct: IProduct): void` – обновляет товар в каталоге и генерирует событие об обновлении товара.
@@ -98,18 +99,17 @@ yarn build
 
 **Поля:**
 - `items: IProduct[]` – массив товаров, добавленных в корзину.
+- `events: EventEmitter` — для уведомления о действиях с корзиной.
 
 **Конструктор:**
 - `constructor()` – создаёт пустую корзину.
 
 **Методы:**
-- `addItem(product: IProduct): void` – добавляет товар в корзину.
-- `removeItem(productId: string): void` – удаляет товар по ID.
-- `getItems(): IProduct[]` – возвращает список товаров в корзине.
-- `clear(): void` – очищает корзину, удаляя все товары.
-- `getTotalPrice(): number` – рассчитывает и возвращает общую стоимость товаров в корзине.
-- `loadFromLocalStorage(): void` – загружает корзину из локального хранилища.
-- `saveToLocalStorage(): void` – сохраняет корзину в локальное хранилище.
+- `addItem(product: IProduct): void` — добавляет товар в корзину и отправляет событие ProductAdded.
+- `removeItem(productId: string): void` — убирает товар из корзины по ID и отправляет событие ProductRemoved.
+- `getItems(): IProduct[]` — возвращает текущий список товаров в корзине.
+- `clear(): void` — полностью очищает корзину.
+- `getTotalPrice(): number` — считает общую стоимость всех товаров в корзине.
 
 ### `OrderProcessor`
 
@@ -133,16 +133,73 @@ yarn build
 
 ## Слой представления (View)
 
-### `OrderSuccessView`
+### `CatalogView`
 
-Отвечает за отображение экрана успешного оформления заказа.
+Показывает витрину с товарами.
 
 **DOM-элементы:**
-- `successElement` — контейнер для сообщения об успешном заказе (`#order-success`).
+
+- `galleryElement: HTMLElement` — контейнер для карточек товаров (.gallery).
+
+**Поля:**
+
+`events: EventEmitter` — для отправки событий, например, при клике на карточку.
+
+**Конструктор:**
+
+- `constructor(events: EventEmitter)` — находит контейнер .gallery и сохраняет объект событий.
 
 **Методы:**
-- `render(order: IOrderResponse): void` — отображает информацию о заказе.
-- `close(): void` — закрывает экран успешного заказа.
+
+- `renderProducts(products: IProduct[]): void` — отображает список товаров, создавая для каждого экземпляр ProductCardView.
+ProductCardView
+Отображает одну карточку товара на витрине.
+
+### `ProductCardView`
+
+Отображает одну карточку товара на витрине.
+
+**DOM-элементы:**
+
+- `element: HTMLElement` — сама карточка (.gallery__item).
+
+**Поля:**
+
+- `events: EventEmitter` — для отправки событий, например, открытия деталей.
+- `baseUrl: string` — базовый URL для картинок товаров.
+
+**Конструктор:**
+
+- `constructor(product: IProduct, events: EventEmitter)` — создаёт карточку на основе продукта и настраивает события.
+
+**Методы:**
+
+- `getElement(): HTMLElement` — возвращает DOM-элемент карточки.
+
+### `ProductDetailsView`
+
+Показывает модальное окно с подробностями о товаре.
+
+**DOM-элементы:**
+
+Использует #card-preview как шаблон для модального окна.
+
+**Поля:**
+
+- `modal: Modal` — объект модального окна.
+- `baseUrl: string` — базовый URL для картинок.
+- `events: EventEmitter` — для отправки событий (например, добавления в корзину).
+
+**Конструктор:**
+
+- `constructor(events: EventEmitter)` — создаёт модальное окно с шаблоном #card-preview.
+
+**Методы:**
+
+- `renderProductDetails(product: IProduct): void` — заполняет модальное окно данными о товаре и открывает его.
+- `getModal(): Modal` — возвращает объект модального окна.
+- `close(): void` — закрывает модальное окно.
+- `destroy(): void` — удаляет модальное окно из DOM.
 
 ### `BasketView`
 
@@ -151,42 +208,184 @@ yarn build
 **DOM-элементы:**
 - `basketElement` — контейнер корзины (`#basket`).
 - `counterElement` — элемент для отображения количества товаров (`#basket-counter`).
+Использует #basket как шаблон для модального окна.
+
+**Поля:**
+- `modal: Modal` — объект модального окна.
+- `totalPriceElement: HTMLElement` — элемент с общей суммой (.basket__price).
+- `basketListElement: HTMLElement` — список товаров в корзине (.basket__list).
+- `orderButtonElement: HTMLButtonElement` — кнопка оформления заказа (.basket__button).
+- `events: EventEmitter` — для отправки событий.
+
+**Конструктор:**
+
+- `constructor(events: EventEmitter)` — находит все нужные элементы и настраивает события.
 
 **Методы:**
-- `render(items: IProduct[]): void` — отображает список товаров в корзине.
-- `updateCounter(count: number): void` — обновляет счетчик товаров.
-- `show(): void` — отображает корзину.
-- `hide(): void` — скрывает корзину.
+
+- `setOrderButtonDisabled(isDisabled: boolean): void` — включает или выключает кнопку оформления.
+- `setBasketItems(items: IProduct[]): void` — обновляет список товаров в корзине.
+- `setOnDeleteItemCallback(callback: (productId: string) => void): void` — задаёт функцию для удаления товара.
+- `render(items: IProduct[]): void` — отображает товары в корзине и обновляет счетчик и сумму.
+- `updateCounter(count: number): void` — обновляет число товаров в счетчике.
+- `updateTotalPrice(totalPrice: number): void` — обновляет общую сумму.
+- `open(): void` — открывает модальное окно корзины.
+- `close(): void` — закрывает модальное окно корзины.
+- `getModal(): Modal` — возвращает объект модального окна.
+
+### `BasketItemView`
+Отображает один товар в корзине.
+
+**DOM-элементы:**
+
+- `element: HTMLElement` — элемент товара в корзине.
+
+**Поля:**
+
+- `product: IProduct` — данные о товаре.
+- `index: number` — порядковый номер товара.
+- `onDelete?: (productId: string) => void` — функция для удаления товара.
+
+**Конструктор:**
+
+- `constructor(product: IProduct & { index: number }, onDelete?: (productId: string) => void)` — создаёт элемент товара.
+
+**Методы:**
+
+Нет публичных методов, только рендеринг в конструкторе.
+
+### `OrderSuccessView`
+
+Показывает модальное окно успешного заказа.
+
+**DOM-элементы:**
+
+Использует #success как шаблон для модального окна.
+
+**Поля:**
+
+- `modal: Modal` — объект модального окна.
+
+**Конструктор:**
+
+- `constructor()` — создаёт модальное окно с шаблоном #success.
+
+**Методы:**
+
+- `render(order: IOrderResponse): void` — заполняет окно данными о заказе и открывает его.
+- `getModal(): Modal` — возвращает объект модального окна.
+- `close(): void` — закрывает модальное окно.
+- `destroy(): void` — удаляет модальное окно из DOM.
+
+### `OrderPaymentView`
+
+Показывает модальное окно для ввода адреса и выбора оплаты.
+
+**DOM-элементы:**
+
+Использует #order как шаблон для модального окна.
+
+**Поля:**
+
+- `modal: Modal` — объект модального окна.
+- `nextButton: HTMLElement | null` — кнопка "Далее" (.order__button).
+
+**Конструктор:**
+
+- `constructor()` — создаёт модальное окно с шаблоном #order.
+Методы:
+
+- `render(): void` — открывает модальное окно.
+- `setOnNextButtonClick(callback: () => void): void` — задаёт функцию для кнопки "Далее".
+- `getModal(): Modal` — возвращает объект модального окна.
+- `close(): void` — закрывает модальное окно.
+- `destroy(): void` — удаляет модальное окно из DOM.
+
+### `OrderContactsView`
+
+Показывает модальное окно для ввода email и телефона.
+
+**DOM-элементы:**
+
+Использует #contacts как шаблон для модального окна.
+
+**Поля:**
+
+- `modal: Modal` — объект модального окна.
+- `payButton: HTMLElement | null` — кнопка "Оплатить" (.button).
+
+**Конструктор:**
+
+- `constructor()` — создаёт модальное окно с шаблоном #contacts.
+
+**Методы:**
+
+- `render(): void` — открывает модальное окно.
+- `setOnPayButtonClick(callback: () => void): void` — задаёт функцию для кнопки "Оплатить".
+- `getModal(): Modal` — возвращает объект модального окна.
+- `close(): void` — закрывает модальное окно.
+- `destroy(): void` — удаляет модальное окно из DOM.
+
+### `Modal`
+
+Универсальный класс для работы с модальными окнами.
+
+**DOM-элементы:**
+
+Создаёт .modal и .modal__container программно или использует шаблон.
+
+**Поля:**
+
+- `modalElement: HTMLElement` — корневой элемент модального окна.
+- `closeButton: HTMLElement | null` — кнопка закрытия (.modal__close).
+- `contentContainer: HTMLElement | null` — контейнер для содержимого (.modal__content).
+
+**Конструктор:**
+
+- `constructor(options: { templateId?: string; content?: HTMLElement | DocumentFragment; onClose?: () => void })` — создаёт модальное окно с указанным шаблоном или контентом.
+
+**Методы:**
+
+- `open(): void` — открывает модальное окно.
+- `close(): void` — закрывает модальное окно.
+- `setContent(content: HTMLElement | DocumentFragment): void` — задаёт содержимое окна.
+- `getModalElement(): HTMLElement` — возвращает корневой элемент окна.
+- `destroy(): void` — удаляет окно из DOM.
 
 ## Слой презентера (Presenter)
 
-Этот слой координирует взаимодействие между моделью и представлением.
+**Presenter**
 
-**Основные задачи:**
+Связывает модель и представление, управляет всей логикой приложения.
 
-- Следит за изменениями данных в модели.
-- Обновляет интерфейс при изменении состояния приложения.
-- Обрабатывает пользовательские действия (например, добавление товаров в корзину, оформление заказа).
+**Поля:**
 
-Методы:
+- `catalog: Catalog` — модель каталога.
+- `basket: Basket` — модель корзины.
+- `orderProcessor: OrderProcessor` — модель обработки заказа.
+- `events: EventEmitter` — объект событий.
+- `api: Api` — объект для общения с сервером.
+- `productDetailsView: ProductDetailsView` — представление деталей товара.
+- `catalogView: CatalogView` — представление витрины.
+- `basketView: BasketView` — представление корзины.
+- `orderSuccessView: OrderSuccessView` — представление успешного заказа.
+- `orderPaymentView: OrderPaymentView` — представление оплаты.
+- `orderContactsView: OrderContactsView` — представление контактов.
 
-- `init(): Promise<void>` – инициализирует приложение, загружает данные и настраивает обработчики событий.
+**Конструктор:**
 
-- `setupEventListeners(): void` – настраивает обработчики событий для взаимодействия с пользователем.
+`constructor(catalog: Catalog, basket: Basket, orderProcessor: OrderProcessor, events: EventEmitter, api: Api)` — создаёт все представления и запускает инициализацию.
 
-- `addToBasket(product: IProduct): void` – добавляет товар в корзину.
+**Методы:**
 
-- `removeFromBasket(productId: string): void` – удаляет товар из корзины.
-
-- `openPaymentModal(): void` – открывает модальное окно для выбора способа оплаты.
-
-- `validatePaymentStep(paymentModal: HTMLElement): void` – проверяет корректность данных на этапе оплаты.
-
-- `openContactsModal(): void` – открывает модальное окно для ввода контактных данных.
-
-- `validateContactsStep(contactsModal: HTMLElement): void` – проверяет корректность контактных данных.
-
-- `createOrder(): void` – создает заказ и отправляет его на сервер.
+- `init(): Promise<void>` — загружает товары с сервера и настраивает приложение.
+- `setupEventListeners(): void` — настраивает обработку событий.
+- `addToBasket(product: IProduct): void` — добавляет товар в корзину.
+- `removeFromBasket(productId: string): void` — убирает товар из корзины.
+- `openPaymentModal(): void` — открывает окно оплаты.
+- `validatePaymentStep(): void` — проверяет данные оплаты.
+- `openContactsModal(): void` — открывает окно контактов.
+- `validateContactsStep(): void` — проверяет и отправляет заказ.
 
 ---
 

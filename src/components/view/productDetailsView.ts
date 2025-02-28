@@ -1,67 +1,71 @@
-import { IProduct, IProductView, AppEvent } from '../../types/types';
+import { IProduct, AppEvent } from '../../types/types';
+import { Modal } from './modal';
 import { EventEmitter } from '../base/events';
 
-export class ProductDetailsView implements IProductView {
-  private modalElement: HTMLElement;
+export class ProductDetailsView {
+  private modal: Modal;
   private baseUrl: string;
   private events: EventEmitter;
 
   constructor(events: EventEmitter) {
-    this.modalElement = this.createModalFromTemplate('card-preview');
+    this.modal = new Modal({
+      templateId: 'card-preview',
+      onClose: () => this.handleClose(),
+    });
     this.baseUrl = 'https://larek-api.nomoreparties.co/content/weblarek';
     this.events = events;
   }
-  
-getModalElement(): HTMLElement {
-    return this.modalElement;
-  }
 
   renderProductDetails(product: IProduct): void {
-    const previewTemplate = document.querySelector<HTMLTemplateElement>('#card-preview')!;
-    const previewElement = document.importNode(previewTemplate.content, true);
-
-    const previewTitle = previewElement.querySelector('.card__title')!;
-    const previewImage = previewElement.querySelector('.card__image')! as HTMLImageElement;
-    const previewPrice = previewElement.querySelector('.card__price')!;
-    const previewCategory = previewElement.querySelector('.card__category')!;
-    const previewText = previewElement.querySelector('.card__text')!;
-    const categoryClass = this.getCategoryClass(product.category);
-
-    previewTitle.textContent = product.title;
-    previewImage.src = `${this.baseUrl}${product.image}`;
-    if (product.price === null) {
-      previewPrice.textContent = `Бесценно`;
-    } else {
-      previewPrice.textContent = `${product.price} синапсов`;
+    const previewTemplate = document.querySelector<HTMLTemplateElement>('#card-preview');
+    if (!previewTemplate) {
+      throw new Error('Template #card-preview not found');
     }
 
-    previewCategory.textContent = product.category;
-    previewText.textContent = product.description;
-    previewCategory.classList.add(categoryClass);
+    const previewElement = document.importNode(previewTemplate.content, true);
+
+    const previewTitle = previewElement.querySelector('.card__title');
+    const previewImage = previewElement.querySelector('.card__image') as HTMLImageElement;
+    const previewPrice = previewElement.querySelector('.card__price');
+    const previewCategory = previewElement.querySelector('.card__category');
+    const previewText = previewElement.querySelector('.card__text');
+
+    if (previewTitle) previewTitle.textContent = product.title;
+    if (previewImage) previewImage.src = `${this.baseUrl}${product.image}`;
+    if (previewPrice)
+      previewPrice.textContent = product.price === null ? 'Бесценно' : `${product.price} синапсов`;
+    if (previewCategory) {
+      previewCategory.textContent = product.category;
+      const categoryClass = this.getCategoryClass(product.category);
+      previewCategory.classList.add(categoryClass);
+    }
+    if (previewText) previewText.textContent = product.description;
 
     const addToBasketButton = previewElement.querySelector('.card__button') as HTMLElement;
-    addToBasketButton.addEventListener('click', () => {
-      this.events.emit(AppEvent.ProductAdded, product);
-      this.closeModal();
-    });
+    if (addToBasketButton) {
+      addToBasketButton.addEventListener('click', () => {
+        this.events.emit(AppEvent.ProductAdded, product);
+        this.modal.close();
+      });
+    }
 
-    const modalContent = this.modalElement.querySelector('.modal__content')!;
-    modalContent.innerHTML = '';
-    modalContent.appendChild(previewElement);
-    this.openModal();
+    this.modal.setContent(previewElement);
+    this.modal.open();
   }
 
-  openModal(): void {
-    this.modalElement.classList.add('modal_active');
+  getModal(): Modal {
+    return this.modal;
   }
 
-  closeModal(): void {
-    this.modalElement.classList.remove('modal_active');
+  close(): void {
+    this.modal.close();
   }
 
-  getCloseButton(): HTMLElement | null {
-    return this.modalElement.querySelector('.modal__close');
+  destroy(): void {
+    this.modal.destroy();
   }
+
+  private handleClose(): void {}
 
   private getCategoryClass(category: string): string {
     switch (category) {
@@ -79,26 +83,4 @@ getModalElement(): HTMLElement {
         return '';
     }
   }
-
-  private createModalFromTemplate(templateId: string): HTMLElement {
-    const template = document.querySelector<HTMLTemplateElement>(`#${templateId}`);
-    if (!template) {
-      throw new Error(`Template with id ${templateId} not found`);
-    }
-  
-    const modalContainer = document.createElement('div');
-    modalContainer.classList.add('modal');
-  
-    const modalContent = document.createElement('div');
-    modalContent.classList.add('modal__container'); // Используем modal__container вместо modal__content
-  
-    const clone = document.importNode(template.content, true);
-    modalContent.appendChild(clone);
-  
-    modalContainer.appendChild(modalContent);
-  
-    document.body.appendChild(modalContainer);
-  
-    return modalContainer;
-}
 }
