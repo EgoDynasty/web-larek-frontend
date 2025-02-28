@@ -1,6 +1,6 @@
 import { IProduct, AppEvent } from '../../types/types';
 import { EventEmitter } from '../base/events';
-import { getCategoryClass } from '../ulits/getCategoryClass';
+import { getCategoryClass } from '../../utils/utils';
 
 export class ProductCardView {
   private element: HTMLElement;
