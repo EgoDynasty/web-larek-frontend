@@ -9,7 +9,7 @@ import { BasketView } from './components/view/basketView';
 import { BasketItemView } from './components/view/basketItemView';
 import { CatalogView } from './components/view/catalogView';
 import { ProductDetailsView } from './components/view/productDetailsView';
-import { OrderSuccessView } from './components/view/orderSuccessVi';
+import { OrderSuccessView } from './components/view/orderSuccessView';
 import { OrderPaymentView } from './components/view/orderPaymentView';
 import { OrderContactsView } from './components/view/orderContacntsView';
 import { Modal } from './components/view/modal';
