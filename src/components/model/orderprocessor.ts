@@ -8,8 +8,6 @@ export class OrderProcessor {
     address: '',
     email: '',
     phone: '',
-    total: 0,
-    items: [],
   };
 
   constructor(events: EventEmitter) {
@@ -45,11 +43,19 @@ export class OrderProcessor {
     return true;
   }
 
-  validateOrder(order: IOrder): boolean {
+  validatePaymentForm(): boolean {
+    return this.order.payment !== null && this.validateAddress(this.order.address || '');
+  }
+
+  validateContactsForm(): boolean {
+    return this.validateEmail(this.order.email || '') && this.validatePhone(this.order.phone || '');
+  }
+
+  validateOrder(order: Partial<IOrder>): boolean {
     return (
-      this.validateEmail(order.email) &&
-      this.validatePhone(order.phone) &&
-      this.validateAddress(order.address) &&
+      this.validateEmail(order.email || '') &&
+      this.validatePhone(order.phone || '') &&
+      this.validateAddress(order.address || '') &&
       order.payment !== null
     );
   }
@@ -81,13 +87,6 @@ export class OrderProcessor {
   }
 
   isOrderValid(): boolean {
-    return this.validateOrder({
-      payment: this.order.payment || 'online',
-      address: this.order.address || '',
-      email: this.order.email || '',
-      phone: this.order.phone || '',
-      total: this.order.total || 0,
-      items: this.order.items || [],
-    });
+    return this.validateOrder(this.order);
   }
 }

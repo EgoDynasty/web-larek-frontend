@@ -8,6 +8,7 @@ import { OrderProcessor } from './components/model/orderprocessor';
 import { BasketView } from './components/view/basketView';
 import { BasketItemView } from './components/view/basketItemView';
 import { CatalogView } from './components/view/catalogView';
+import { ProductCardView } from './components/view/productCardView';
 import { ProductDetailsView } from './components/view/productDetailsView';
 import { OrderSuccessView } from './components/view/orderSuccessView';
 import { OrderPaymentView } from './components/view/orderPaymentView';
@@ -27,6 +28,7 @@ class Presenter {
   private readonly orderSuccessView: OrderSuccessView;
   private readonly orderPaymentView: OrderPaymentView;
   private readonly orderContactsView: OrderContactsView;
+  private currentModalContent: HTMLElement | null = null;
 
   constructor(
     catalog: Catalog,
@@ -44,7 +46,7 @@ class Presenter {
     this.productDetailsView = new ProductDetailsView(events);
     this.catalogView = new CatalogView(events);
     this.basketView = new BasketView(events);
-    this.orderSuccessView = new OrderSuccessView();
+    this.orderSuccessView = new OrderSuccessView(events);
     this.orderPaymentView = new OrderPaymentView(events);
     this.orderContactsView = new OrderContactsView(events);
     this.setupEventListeners();
@@ -56,6 +58,7 @@ class Presenter {
       const response = await this.api.get('/product/');
       const products: IProduct[] = (response as { items: IProduct[] }).items;
       this.catalog.setProducts(products);
+      this.updateBasketUI(this.basket.getItems());
     } catch (error) {
       this.events.emit(AppEvent.ErrorOccurred, {
         message: error instanceof Error ? error.message : 'Неизвестная ошибка',
@@ -65,110 +68,101 @@ class Presenter {
 
   private setupEventListeners(): void {
     this.events.on(AppEvent.ProductListLoaded, () => {
-      this.catalogView.renderProducts(this.catalog.getAllProducts());
+      const products = this.catalog.getAllProducts();
+      const cards = products.map(product => {
+        const cardView = new ProductCardView(product, this.events);
+        return cardView.getElement();
+      });
+      this.catalogView.setProducts(cards);
     });
-  
+
     this.events.on(AppEvent.ProductDetailsOpened, (product: IProduct) => {
-      this.modal.setContent(this.productDetailsView.getContent());
+      const content = this.productDetailsView.getContent();
+      this.modal.setContent(content);
+      this.currentModalContent = content;
       this.productDetailsView.renderProductDetails(product);
       this.modal.open();
     });
-  
+
     this.events.on(AppEvent.ProductAdded, (product: IProduct) => {
       this.addToBasket(product);
-      this.basketView.updateCounter(this.basket.getItems().length);
-      this.basketView.updateTotalPrice(this.basket.getTotalPrice());
-      this.basketView.setOrderButtonDisabled(this.basket.getTotalPrice() === 0);
       this.modal.close();
     });
-  
+
     this.events.on(AppEvent.ProductRemoved, (event: { productId: string }) => {
       this.removeFromBasket(event.productId);
-      this.basketView.updateCounter(this.basket.getItems().length);
-      this.basketView.updateTotalPrice(this.basket.getTotalPrice());
-      const items = this.basket.getItems().map((item, index) => {
-        const basketItemView = new BasketItemView(item, (productId) => {
-          this.events.emit(AppEvent.ProductRemoved, { productId });
-        });
-        basketItemView.setIndex(index + 1);
-        return basketItemView.element;
-      });
-      this.basketView.setItems(items);
-      this.basketView.setOrderButtonDisabled(this.basket.getTotalPrice() === 0);
     });
-  
+
+    this.events.on(AppEvent.BasketUpdated, (items: IProduct[]) => {
+      this.updateBasketUI(items);
+    });
+
     this.events.on(AppEvent.BasketOpened, () => {
-      const items = this.basket.getItems().map((item, index) => {
-        const basketItemView = new BasketItemView(item, (productId) => {
-          this.events.emit(AppEvent.ProductRemoved, { productId });
-        });
-        basketItemView.setIndex(index + 1);
-        return basketItemView.element;
-      });
-      this.basketView.setItems(items);
-      this.basketView.updateCounter(this.basket.getItems().length);
-      this.basketView.updateTotalPrice(this.basket.getTotalPrice());
-      this.basketView.setOrderButtonDisabled(this.basket.getTotalPrice() === 0);
-      this.modal.setContent(this.basketView.getContent());
+      const content = this.basketView.getContent();
+      this.modal.setContent(content);
+      this.currentModalContent = content;
       this.modal.open();
     });
-  
+
     this.events.on(AppEvent.OrderStarted, () => {
-      this.modal.setContent(this.orderPaymentView.getContent());
+      const content = this.orderPaymentView.getContent();
+      this.modal.setContent(content);
+      this.currentModalContent = content;
       this.orderPaymentView.setButtonState(false);
       this.modal.open();
     });
-  
+
     this.events.on(AppEvent.PaymentSelected, (event: { data: string }) => {
       this.orderProcessor.setPayment(event.data as 'online' | 'cash');
-      const order = this.orderProcessor.getOrder();
-      const isAddressValid = this.orderProcessor.validateAddress(order.address || '');
-      this.orderPaymentView.setButtonState(isAddressValid);
+      const isValid = this.orderProcessor.validatePaymentForm();
+      this.orderPaymentView.setButtonState(isValid);
     });
-  
+
     this.events.on(AppEvent.AddressChanged, (event: { data: string }) => {
       this.orderProcessor.setAddress(event.data);
+      const isValid = this.orderProcessor.validatePaymentForm();
+      this.orderPaymentView.setButtonState(isValid);
     });
-  
+
     this.events.on(AppEvent.AddressUpdated, (event: { address: string; isValid: boolean; error: string }) => {
       this.orderPaymentView.setError(event.error);
-      const order = this.orderProcessor.getOrder();
-      const isPaymentSelected = order.payment !== null;
-      this.orderPaymentView.setButtonState(event.isValid && isPaymentSelected);
+      const isValid = this.orderProcessor.validatePaymentForm();
+      this.orderPaymentView.setButtonState(isValid);
     });
-  
+
     this.events.on(AppEvent.PaymentSubmitted, () => {
-      const order = this.orderProcessor.getOrder();
-      const isAddressValid = this.orderProcessor.validateAddress(order.address || '');
-      const isPaymentSelected = order.payment !== null;
-      if (isAddressValid && isPaymentSelected) {
-        this.modal.setContent(this.orderContactsView.getContent());
+      if (this.orderProcessor.validatePaymentForm()) {
+        const content = this.orderContactsView.getContent();
+        this.modal.setContent(content);
+        this.currentModalContent = content;
         this.orderContactsView.setButtonState(false);
       }
     });
-  
+
     this.events.on(AppEvent.EmailChanged, (event: { data: string }) => {
       this.orderProcessor.setEmail(event.data);
+      const isValid = this.orderProcessor.validateContactsForm();
+      this.orderContactsView.setButtonState(isValid);
     });
-  
+
     this.events.on(AppEvent.PhoneChanged, (event: { data: string }) => {
       this.orderProcessor.setPhone(event.data);
+      const isValid = this.orderProcessor.validateContactsForm();
+      this.orderContactsView.setButtonState(isValid);
     });
-  
+
     this.events.on(AppEvent.EmailUpdated, (event: { email: string; isValid: boolean; error: string }) => {
-      if (!event.isValid) this.orderContactsView.setError(event.error);
-      const order = this.orderProcessor.getOrder();
-      const isPhoneValid = this.orderProcessor.validatePhone(order.phone || '');
-      this.orderContactsView.setButtonState(event.isValid && isPhoneValid);
+      this.orderContactsView.setError(event.isValid ? '' : event.error);
+      const isValid = this.orderProcessor.validateContactsForm();
+      this.orderContactsView.setButtonState(isValid);
     });
-  
+
     this.events.on(AppEvent.PhoneUpdated, (event: { phone: string; isValid: boolean; error: string }) => {
-      if (!event.isValid) this.orderContactsView.setError(event.error);
-      const order = this.orderProcessor.getOrder();
-      const isEmailValid = this.orderProcessor.validateEmail(order.email || '');
-      this.orderContactsView.setButtonState(event.isValid && isEmailValid);
+      this.orderContactsView.setError(event.isValid ? '' : event.error);
+      const isValid = this.orderProcessor.validateContactsForm();
+      this.orderContactsView.setButtonState(isValid);
     });
-  
+
     this.events.on(AppEvent.ContactsSubmitted, () => {
       if (this.orderProcessor.isOrderValid()) {
         const order: IOrder = {
@@ -180,10 +174,12 @@ class Presenter {
           .createOrder(order)
           .then((response) => {
             this.basket.clear();
-            this.modal.setContent(this.orderSuccessView.getContent());
+            const content = this.orderSuccessView.getContent();
+            this.modal.setContent(content);
+            this.currentModalContent = content;
             this.orderSuccessView.render(response);
             this.events.emit(AppEvent.OrderCreated, response);
-            console.log(order)
+            console.log(order);
           })
           .catch((error) => {
             this.events.emit(AppEvent.ErrorOccurred, {
@@ -192,10 +188,16 @@ class Presenter {
           });
       }
     });
-  
+
     this.events.on(AppEvent.OrderCreated, (order: IOrderResponse) => {
-      this.modal.setContent(this.orderSuccessView.getContent());
+      const content = this.orderSuccessView.getContent();
+      this.modal.setContent(content);
+      this.currentModalContent = content;
       this.orderSuccessView.render(order);
+    });
+
+    this.events.on(AppEvent.ModalClose, () => {
+      this.modal.close();
     });
   }
 
@@ -205,6 +207,19 @@ class Presenter {
 
   private removeFromBasket(productId: string): void {
     this.basket.removeItem(productId);
+  }
+
+  private updateBasketUI(items: IProduct[]): void {
+    this.basketView.updateCounter(items.length);
+    this.basketView.updateTotalPrice(this.basket.getTotalPrice());
+    this.basketView.setOrderButtonDisabled(this.basket.getTotalPrice() === 0);
+    const updatedItems = items.map((item, index) => {
+      const basketItemView = new BasketItemView(item, index + 1, (productId) => {
+        this.events.emit(AppEvent.ProductRemoved, { productId });
+      });
+      return basketItemView.element;
+    });
+    this.basketView.setItems(updatedItems);
   }
 }
 

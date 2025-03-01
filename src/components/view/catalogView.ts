@@ -1,26 +1,24 @@
-import { IProduct } from '../../types/types';
-import { ProductCardView } from './productCardView';
 import { EventEmitter } from '../base/events';
 
 export class CatalogView {
-  public galleryElement: HTMLElement;
+  private galleryElement: HTMLElement;
   private events: EventEmitter;
 
   constructor(events: EventEmitter) {
-    this.galleryElement = document.querySelector('.gallery')!;
+    const gallery = document.querySelector('.gallery');
+    if (!gallery) {
+      throw new Error('Gallery element not found');
+    }
+    this.galleryElement = gallery as HTMLElement;
     this.events = events;
   }
 
-  renderProducts(products: IProduct[]): void {
-    if (!products || products.length === 0) {
+  setProducts(cards: HTMLElement[]): void {
+    this.galleryElement.innerHTML = '';
+    if (cards.length === 0) {
       this.galleryElement.innerHTML = '<p>Товары не найдены</p>';
       return;
     }
-
-    this.galleryElement.innerHTML = '';
-    products.forEach((product) => {
-      const cardView = new ProductCardView(product, this.events);
-      this.galleryElement.appendChild(cardView.getElement());
-    });
+    cards.forEach(card => this.galleryElement.appendChild(card));
   }
 }

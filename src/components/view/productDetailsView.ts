@@ -11,19 +11,27 @@ export class ProductDetailsView {
     this.events = events;
     const template = document.querySelector<HTMLTemplateElement>('#card-preview');
     if (!template) throw new Error('Template #card-preview not found');
-    this.content = document.importNode(template.content, true).querySelector('.card') as HTMLElement;
+    const clonedContent = document.importNode(template.content, true).querySelector('.card');
+    if (!(clonedContent instanceof HTMLElement)) {
+      throw new Error('Card element not found in template');
+    }
+    this.content = clonedContent;
   }
 
   renderProductDetails(product: IProduct): void {
-    const previewTitle = this.content.querySelector('.card__title')!;
-    const previewImage = this.content.querySelector('.card__image') as HTMLImageElement;
-    const previewPrice = this.content.querySelector('.card__price')!;
-    const previewCategory = this.content.querySelector('.card__category')!;
-    const previewText = this.content.querySelector('.card__text')!;
-    const addButton = this.content.querySelector('.card__button') as HTMLButtonElement;
+    const previewTitle = this.content.querySelector('.card__title');
+    const previewImage = this.content.querySelector('.card__image');
+    const previewPrice = this.content.querySelector('.card__price');
+    const previewCategory = this.content.querySelector('.card__category');
+    const previewText = this.content.querySelector('.card__text');
+    const addButton = this.content.querySelector('.card__button');
+
+    if (!previewTitle || !previewImage || !previewPrice || !previewCategory || !previewText || !addButton) {
+      throw new Error('Required elements not found in product details template');
+    }
 
     previewTitle.textContent = product.title;
-    previewImage.src = `${this.baseUrl}${product.image}`;
+    (previewImage as HTMLImageElement).src = `${this.baseUrl}${product.image}`;
     previewPrice.textContent = product.price === null ? 'Бесценно' : `${product.price} синапсов`;
     
     previewCategory.className = 'card__category';
@@ -33,7 +41,11 @@ export class ProductDetailsView {
 
     previewText.textContent = product.description;
 
-    addButton.onclick = () => this.events.emit(AppEvent.ProductAdded, product);
+    const isPriceless = product.price === null;
+    (addButton as HTMLButtonElement).disabled = isPriceless;
+    if (!isPriceless) {
+      (addButton as HTMLButtonElement).onclick = () => this.events.emit(AppEvent.ProductAdded, product);
+    }
   }
 
   getContent(): HTMLElement {

@@ -129,6 +129,10 @@ yarn build
 
 - `validateOrder(order: IOrder): boolean` – проверяет корректность заказа.
 
+- `validatePaymentForm(): boolean` - проверяет корректность поля оплаты.
+
+- `validateContactsForm(): boolean` - проверяет корректность поля контактов.
+
 - `setPayment(payment: 'online' | 'cash'): void` – устанавливает способ оплаты.
 
 - `setAddress(address: string): void` – устанавливает адрес и отправляет событие AddressUpdated.
@@ -163,9 +167,7 @@ yarn build
 
 **Методы:**
 
-- `renderProducts(products: IProduct[]): void` — отображает список товаров, создавая для каждого экземпляр ProductCardView.
-ProductCardView
-Отображает одну карточку товара на витрине.
+- `setProducts` — отображает список товаров
 
 ### `ProductCardView`
 
@@ -258,6 +260,7 @@ ProductCardView
 
 
 ### `BasketItemView`
+
 Отображает один товар в корзине.
 
 **DOM-элементы:**
@@ -271,8 +274,6 @@ ProductCardView
 **Методы:**
 
 - `get element(): HTMLElement` – возвращает DOM-элемент товара.
-
-- `setIndex(index: number): void` – устанавливает порядковый номер элемента.
 
 ### `OrderSuccessView`
 
@@ -359,7 +360,9 @@ ProductCardView
 **Методы:**
 
 - `setError(error: string): void` – отображает сообщение об ошибке.
+
 - `setButtonState(isEnabled: boolean): void` – включает или выключает кнопку "Оплатить".
+
 - `getContent(): HTMLElement` – возвращает содержимое формы.
 
 ### `Modal`

@@ -31,6 +31,10 @@ export interface IErrorResponse {
   error: string;
 }
 
+export interface IModalCloseEvent {
+  type: AppEvent.ModalClose;
+}
+
 // Типы для API-клиента
 export interface IApiClient {
   getProducts(): Promise<IProductListResponse>;
@@ -62,6 +66,7 @@ export enum AppEvent {
   PhoneUpdated = 'phone-updated',
   PaymentSubmitted = 'payment-submitted',
   ContactsSubmitted = 'contacts-submitted',
+  ModalClose = 'modal-close',
 }
 
 // Интерфейсы для событий
@@ -183,7 +188,8 @@ export type AppEvents =
   | IPhoneChangedEvent
   | IPhoneUpdatedEvent
   | IPaymentSubmittedEvent
-  | IContactsSubmittedEvent;
+  | IContactsSubmittedEvent
+  | IModalCloseEvent
 
 // Типы для моделей данных
 export interface IProductModel {
