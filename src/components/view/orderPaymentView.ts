@@ -21,6 +21,8 @@ export class OrderPaymentView {
     this.paymentButtons = this.paymentContainer.querySelectorAll('.button_alt');
     this.errorsElement = this.paymentContainer.querySelector('.form__errors') as HTMLElement;
 
+    this.addressInput.setAttribute('autocomplete', 'street-address');
+
     this.nextButton.disabled = true;
 
     this.setupEventListeners();

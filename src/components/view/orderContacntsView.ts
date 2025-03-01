@@ -21,6 +21,9 @@ export class OrderContactsView {
     this.payButton = this.contactsContainer.querySelector('.button') as HTMLButtonElement;
     this.errorsElement = this.contactsContainer.querySelector('.form__errors') as HTMLElement;
 
+    this.emailInput.setAttribute('autocomplete', 'email');
+    this.phoneInput.setAttribute('autocomplete', 'tel');
+
     this.payButton.disabled = true;
 
     this.setupEventListeners();
