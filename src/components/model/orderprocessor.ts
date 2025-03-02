@@ -9,77 +9,105 @@ export class OrderProcessor {
     email: '',
     phone: '',
   };
+  private errors: { [key: string]: string } = {
+    payment: '',
+    address: '',
+    email: '',
+    phone: '',
+  };
 
   constructor(events: EventEmitter) {
     this.events = events;
   }
 
-  validateEmail(email: string): boolean {
+  private validateEmail(email: string): boolean {
     if (!email.trim()) {
-      this.events.emit(AppEvent.ErrorOccurred, { message: "Введите email" });
+      this.errors.email = 'Введите email';
       return false;
     }
     if (!email.includes('@')) {
-      this.events.emit(AppEvent.ErrorOccurred, { message: "Некорректный email" });
+      this.errors.email = 'Некорректный email';
       return false;
     }
+    this.errors.email = '';
     return true;
   }
 
-  validatePhone(phone: string): boolean {
+  private validatePhone(phone: string): boolean {
     const cleanedPhone = phone.replace(/[^\d+]/g, '');
     if (!cleanedPhone.match(/^(\+7|8)\d{10}$/)) {
-      this.events.emit(AppEvent.ErrorOccurred, { message: "Некорректный номер телефона" });
+      this.errors.phone = 'Некорректный номер телефона';
       return false;
     }
+    this.errors.phone = '';
     return true;
   }
 
-  validateAddress(address: string): boolean {
+  private validateAddress(address: string): boolean {
     if (!address.trim()) {
-      this.events.emit(AppEvent.ErrorOccurred, { message: "Введите адрес доставки" });
+      this.errors.address = 'Введите адрес доставки';
       return false;
     }
+    this.errors.address = '';
     return true;
   }
 
-  validatePaymentForm(): boolean {
-    return this.order.payment !== null && this.validateAddress(this.order.address || '');
+  private validatePayment(payment: 'online' | 'cash' | null): boolean {
+    if (!payment) {
+      this.errors.payment = 'Выберите способ оплаты';
+      return false;
+    }
+    this.errors.payment = '';
+    return true;
   }
 
-  validateContactsForm(): boolean {
-    return this.validateEmail(this.order.email || '') && this.validatePhone(this.order.phone || '');
+  validatePaymentForm(): { isValid: boolean; errors: { [key: string]: string } } {
+    const isPaymentValid = this.validatePayment(this.order.payment);
+    const isAddressValid = this.validateAddress(this.order.address || '');
+    return {
+      isValid: isPaymentValid && isAddressValid,
+      errors: { payment: this.errors.payment, address: this.errors.address },
+    };
+  }
+
+  validateContactsForm(): { isValid: boolean; errors: { [key: string]: string } } {
+    const isEmailValid = this.validateEmail(this.order.email || '');
+    const isPhoneValid = this.validatePhone(this.order.phone || '');
+    return {
+      isValid: isEmailValid && isPhoneValid,
+      errors: { email: this.errors.email, phone: this.errors.phone },
+    };
   }
 
   validateOrder(order: Partial<IOrder>): boolean {
-    return (
-      this.validateEmail(order.email || '') &&
-      this.validatePhone(order.phone || '') &&
-      this.validateAddress(order.address || '') &&
-      order.payment !== null
-    );
+    const isPaymentValid = this.validatePayment(order.payment);
+    const isAddressValid = this.validateAddress(order.address || '');
+    const isEmailValid = this.validateEmail(order.email || '');
+    const isPhoneValid = this.validatePhone(order.phone || '');
+    return isPaymentValid && isAddressValid && isEmailValid && isPhoneValid;
   }
 
   setPayment(payment: 'online' | 'cash'): void {
     this.order.payment = payment;
+    this.validatePayment(payment);
   }
 
   setAddress(address: string): void {
     this.order.address = address;
     const isValid = this.validateAddress(address);
-    this.events.emit(AppEvent.AddressUpdated, { address, isValid, error: isValid ? '' : 'Введите адрес доставки' });
+    this.events.emit(AppEvent.AddressUpdated, { address, isValid, error: this.errors.address });
   }
 
   setEmail(email: string): void {
     this.order.email = email;
     const isValid = this.validateEmail(email);
-    this.events.emit(AppEvent.EmailUpdated, { email, isValid, error: isValid ? '' : 'Некорректный email' });
+    this.events.emit(AppEvent.EmailUpdated, { email, isValid, error: this.errors.email });
   }
 
   setPhone(phone: string): void {
     this.order.phone = phone;
     const isValid = this.validatePhone(phone);
-    this.events.emit(AppEvent.PhoneUpdated, { phone, isValid, error: isValid ? '' : 'Некорректный номер телефона' });
+    this.events.emit(AppEvent.PhoneUpdated, { phone, isValid, error: this.errors.phone });
   }
 
   getOrder(): Partial<IOrder> {
@@ -88,5 +116,9 @@ export class OrderProcessor {
 
   isOrderValid(): boolean {
     return this.validateOrder(this.order);
+  }
+
+  getErrors(): { [key: string]: string } {
+    return { ...this.errors };
   }
 }

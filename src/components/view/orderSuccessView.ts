@@ -34,7 +34,7 @@ export class OrderSuccessView {
     this.descriptionElement.textContent = `Списано ${order.total} синапсов`;
   }
 
-  private setupEventListeners(): void {
+  private setupEventListeners(): void {   
     this.closeButton.addEventListener('click', () => {
       this.events.emit(AppEvent.ModalClose);
     });

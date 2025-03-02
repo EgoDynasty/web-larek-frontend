@@ -8,7 +8,10 @@ export class Modal {
 
   constructor(events: EventEmitter) {
     this.events = events;
-    this.modalElement = document.querySelector('.modal')!;
+    const modal = document.querySelector('.modal');
+    if (!modal) throw new Error('Modal element not found');
+    this.modalElement = modal as HTMLElement;
+
     this.closeButton = this.modalElement.querySelector('.modal__close');
     this.contentContainer = this.modalElement.querySelector('.modal__content');
 

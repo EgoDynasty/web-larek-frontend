@@ -114,24 +114,25 @@ class Presenter {
 
     this.events.on(AppEvent.PaymentSelected, (event: { data: string }) => {
       this.orderProcessor.setPayment(event.data as 'online' | 'cash');
-      const isValid = this.orderProcessor.validatePaymentForm();
+      const { isValid, errors } = this.orderProcessor.validatePaymentForm();
       this.orderPaymentView.setButtonState(isValid);
+      this.orderPaymentView.setError(errors.payment || errors.address || '');
     });
 
     this.events.on(AppEvent.AddressChanged, (event: { data: string }) => {
       this.orderProcessor.setAddress(event.data);
-      const isValid = this.orderProcessor.validatePaymentForm();
+      const { isValid, errors } = this.orderProcessor.validatePaymentForm();
       this.orderPaymentView.setButtonState(isValid);
     });
 
     this.events.on(AppEvent.AddressUpdated, (event: { address: string; isValid: boolean; error: string }) => {
-      this.orderPaymentView.setError(event.error);
-      const isValid = this.orderProcessor.validatePaymentForm();
+      const { isValid, errors } = this.orderProcessor.validatePaymentForm();
+      this.orderPaymentView.setError(errors.payment || errors.address || '');
       this.orderPaymentView.setButtonState(isValid);
     });
 
     this.events.on(AppEvent.PaymentSubmitted, () => {
-      if (this.orderProcessor.validatePaymentForm()) {
+      if (this.orderProcessor.validatePaymentForm().isValid) {
         const content = this.orderContactsView.getContent();
         this.modal.setContent(content);
         this.currentModalContent = content;
@@ -141,25 +142,25 @@ class Presenter {
 
     this.events.on(AppEvent.EmailChanged, (event: { data: string }) => {
       this.orderProcessor.setEmail(event.data);
-      const isValid = this.orderProcessor.validateContactsForm();
+      const { isValid, errors } = this.orderProcessor.validateContactsForm();
       this.orderContactsView.setButtonState(isValid);
     });
 
     this.events.on(AppEvent.PhoneChanged, (event: { data: string }) => {
       this.orderProcessor.setPhone(event.data);
-      const isValid = this.orderProcessor.validateContactsForm();
+      const { isValid, errors } = this.orderProcessor.validateContactsForm();
       this.orderContactsView.setButtonState(isValid);
     });
 
     this.events.on(AppEvent.EmailUpdated, (event: { email: string; isValid: boolean; error: string }) => {
-      this.orderContactsView.setError(event.isValid ? '' : event.error);
-      const isValid = this.orderProcessor.validateContactsForm();
+      const { isValid, errors } = this.orderProcessor.validateContactsForm();
+      this.orderContactsView.setError(errors.email || errors.phone || '');
       this.orderContactsView.setButtonState(isValid);
     });
 
     this.events.on(AppEvent.PhoneUpdated, (event: { phone: string; isValid: boolean; error: string }) => {
-      this.orderContactsView.setError(event.isValid ? '' : event.error);
-      const isValid = this.orderProcessor.validateContactsForm();
+      const { isValid, errors } = this.orderProcessor.validateContactsForm();
+      this.orderContactsView.setError(errors.email || errors.phone || '');
       this.orderContactsView.setButtonState(isValid);
     });
 
@@ -229,4 +230,4 @@ const events = new EventEmitter();
 const catalog = new Catalog(events);
 const basket = new Basket(events);
 const orderProcessor = new OrderProcessor(events);
-const presenter = new Presenter(catalog, basket, orderProcessor, events, api);
+const presenter = new Presenter(catalog, basket, orderProcessor, events, api);  
